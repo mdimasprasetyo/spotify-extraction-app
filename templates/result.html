@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Track Info Result</title>
+</head>
+<body>
+    <h1>Track Info</h1>
+    <p><strong>Title:</strong> {{ title }}</p>
+    <p><strong>Artist:</strong> {{ artist }}</p>
+    <img src="{{ album_art_url }}" alt="Album Art">
+    <h2>Spotify Code</h2>
+    <img src="{{ spotify_code_url }}" alt="Spotify Code">
+    <br>
+    <a href="/download">Download Spotify Code</a>
+    <br>
+    <a href="/">Go Back</a>
+</body>
+</html>
