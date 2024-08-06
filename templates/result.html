@@ -3,18 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Track Info Result</title>
+    <title>Spotify Info</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .download-button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .download-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Track Info</h1>
-    <p><strong>Title:</strong> {{ title }}</p>
+    <h1>Spotify Info</h1>
+    <h2>{{ title }}</h2>
     <p><strong>Artist:</strong> {{ artist }}</p>
-    <img src="{{ album_art_url }}" alt="Album Art">
-    <h2>Spotify Code</h2>
-    <img src="{{ spotify_code_url }}" alt="Spotify Code">
-    <br>
-    <a href="/download">Download Spotify Code</a>
-    <br>
-    <a href="/">Go Back</a>
+    <div>
+        <h3>Album Art:</h3>
+        <img src="{{ album_art_url }}" alt="Album Art">
+        <br>
+        <a class="download-button" href="/download/album_art?spotify_url={{ request.args.get('spotify_url') }}" download>Download Album Art</a>
+    </div>
+    <div>
+        <h3>Spotify Code:</h3>
+        <img src="{{ spotify_code_url }}" alt="Spotify Code">
+        <br>
+        <a class="download-button" href="/download/spotify_code?spotify_url={{ request.args.get('spotify_url') }}" download>Download Spotify Code</a>
+    </div>
 </body>
 </html>

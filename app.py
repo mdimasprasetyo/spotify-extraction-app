@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template, send_file, Response
 from PIL import Image
 from io import BytesIO
 import os
@@ -55,10 +55,9 @@ def sanitize_filename(filename):
     """Sanitize filename to be filesystem-friendly."""
     return re.sub(r'[<>:"/\\|?*]', '', filename).strip()
 
-def save_image(image_url, file_name):
+def get_image_from_url(image_url):
     response = requests.get(image_url)
-    img = Image.open(BytesIO(response.content))
-    img.save(file_name, 'PNG')
+    return Image.open(BytesIO(response.content))
 
 def spotify_url_to_id(url):
     """Convert Spotify URL to URI or ID format."""
@@ -109,28 +108,102 @@ def result():
     # Sanitize title and artist for filenames
     sanitized_title = sanitize_filename(title)
     sanitized_artist = sanitize_filename(artist)
-    album_art_filename = f'static/{sanitized_title}_{sanitized_artist}_album_art.png'
-    spotify_code_filename = f'static/{sanitized_title}_{sanitized_artist}_spotify_code.svg'
 
-    # Save album art with unique name based on title and artist
-    save_image(album_art_url, album_art_filename)
+    # Fetch and serve album art dynamically
+    album_art_img = get_image_from_url(album_art_url)
+    album_art_bytes = BytesIO()
+    album_art_img.save(album_art_bytes, format='PNG')
+    album_art_bytes.seek(0)
 
-    # Generate Spotify code
+    # Generate Spotify code dynamically
     spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{track_id}')
-    
-    # Save SVG with unique name based on title and artist
-    with open(spotify_code_filename, 'wb') as f:
-        f.write(spotify_code_svg)
+    spotify_code_bytes = BytesIO(spotify_code_svg)
+    spotify_code_bytes.seek(0)
 
-    return render_template('result.html', title=title, artist=artist, album_art_url=album_art_filename, spotify_code_url=spotify_code_filename)
+    return render_template(
+        'result.html',
+        title=title,
+        artist=artist,
+        album_art_url='/dynamic_album_art?spotify_url=' + spotify_url,
+        spotify_code_url='/dynamic_spotify_code?spotify_url=' + spotify_url
+    )
 
-@app.route('/download/<filename>')
-def download(filename):
-    file_path = os.path.join('static', filename)
-    if os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True)
+@app.route('/dynamic_album_art')
+def dynamic_album_art():
+    spotify_url = request.args.get('spotify_url')
+    track_id, content_type = spotify_url_to_id(spotify_url)
+    if track_id is None:
+        return "Invalid Spotify URL", 400
+
+    access_token = get_access_token()
+
+    if content_type == 'track':
+        track_info = get_track_info(access_token, track_id)
+        album_art_url = track_info['album']['images'][0]['url']
+    elif content_type == 'album':
+        album_info = get_album_info(access_token, track_id)
+        album_art_url = album_info['images'][0]['url']
+    elif content_type == 'playlist':
+        playlist_info = get_playlist_info(access_token, track_id)
+        album_art_url = playlist_info['images'][0]['url']
     else:
-        return "File not found", 404
+        return "Unsupported Spotify URL type", 400
+
+    album_art_img = get_image_from_url(album_art_url)
+    album_art_bytes = BytesIO()
+    album_art_img.save(album_art_bytes, format='PNG')
+    album_art_bytes.seek(0)
+
+    return send_file(album_art_bytes, mimetype='image/png', as_attachment=False)
+
+@app.route('/dynamic_spotify_code')
+def dynamic_spotify_code():
+    spotify_url = request.args.get('spotify_url')
+    track_id, content_type = spotify_url_to_id(spotify_url)
+    if track_id is None:
+        return "Invalid Spotify URL", 400
+
+    spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{track_id}')
+    spotify_code_bytes = BytesIO(spotify_code_svg)
+    spotify_code_bytes.seek(0)
+
+    return send_file(spotify_code_bytes, mimetype='image/svg+xml', as_attachment=False)
+
+@app.route('/download/<file_type>')
+def download(file_type):
+    spotify_url = request.args.get('spotify_url')
+    track_id, content_type = spotify_url_to_id(spotify_url)
+    if track_id is None:
+        return "Invalid Spotify URL", 400
+
+    access_token = get_access_token()
+
+    if file_type == 'album_art':
+        if content_type == 'track':
+            track_info = get_track_info(access_token, track_id)
+            album_art_url = track_info['album']['images'][0]['url']
+        elif content_type == 'album':
+            album_info = get_album_info(access_token, track_id)
+            album_art_url = album_info['images'][0]['url']
+        elif content_type == 'playlist':
+            playlist_info = get_playlist_info(access_token, track_id)
+            album_art_url = playlist_info['images'][0]['url']
+        else:
+            return "Unsupported Spotify URL type", 400
+
+        album_art_img = get_image_from_url(album_art_url)
+        album_art_bytes = BytesIO()
+        album_art_img.save(album_art_bytes, format='PNG')
+        album_art_bytes.seek(0)
+        return send_file(album_art_bytes, mimetype='image/png', as_attachment=True, download_name=f"{sanitize_filename(title)}_{sanitize_filename(artist)}_album_art.png")
+
+    elif file_type == 'spotify_code':
+        spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{track_id}')
+        spotify_code_bytes = BytesIO(spotify_code_svg)
+        spotify_code_bytes.seek(0)
+        return send_file(spotify_code_bytes, mimetype='image/svg+xml', as_attachment=True, download_name=f"{sanitize_filename(title)}_{sanitize_filename(artist)}_spotify_code.svg")
+
+    return "File type not supported", 400
 
 if __name__ == '__main__':
     app.run(port=8888)
