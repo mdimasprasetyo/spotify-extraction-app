@@ -1,10 +1,11 @@
 import requests
-from flask import Flask, request, render_template, send_file, Response
+from flask import Flask, request, render_template, send_file, Response, redirect, url_for
 from PIL import Image
 from io import BytesIO
 import os
 from dotenv import load_dotenv
 import re
+import urllib.parse
 
 app = Flask(__name__)
 
@@ -148,8 +149,8 @@ def result():
     return render_template('result.html',
                           title=title,
                           artist=artist,
-                          album_art_url=album_art_filename,
-                          spotify_code_url=spotify_code_filename,
+                          album_art_url=urllib.parse.quote(album_art_filename),
+                          spotify_code_url=urllib.parse.quote(spotify_code_filename),
                           spotify_url=spotify_url)
 
 @app.route('/download/<file_type>')
@@ -180,9 +181,16 @@ def download(file_type):
     else:
         return "File type not supported", 400
 
+    # Encode file name for safe HTTP headers
+    file_name_encoded = urllib.parse.quote(file_name)
+
     return Response(file_content,
                     mimetype=mimetype,
-                    headers={"Content-Disposition": f"attachment;filename={file_name}"})
+                    headers={"Content-Disposition": f"attachment; filename*=UTF-8''{file_name_encoded}"})
+
+@app.route('/back')
+def back():
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(port=8888)
