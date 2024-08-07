@@ -48,17 +48,52 @@
     <p><strong>Artist:</strong> {{ artist }}</p>
     <div>
         <h3>Album Art:</h3>
-        <img src="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art">
+        <img src="placeholder.jpg" data-src="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art" class="lazy">
+        <noscript>
+            <img src="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art">
+        </noscript>
         <br>
         <a class="download-button" href="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" download>Download Album Art</a>
     </div>
     <div>
         <h3>Spotify Code:</h3>
-        <img src="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" alt="Spotify Code">
+        <img src="placeholder.jpg" data-src="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" alt="Spotify Code" class="lazy">
+        <noscript>
+            <img src="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" alt="Spotify Code">
+        </noscript>
         <br>
         <a class="download-button" href="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" download>Download Spotify Code</a>
     </div>
     <br>
     <a class="back-button" href="{{ url_for('back') }}">Back</a>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var lazyImages = [].slice.call(document.querySelectorAll("img.lazy"));
+
+            if ("IntersectionObserver" in window) {
+                let lazyImageObserver = new IntersectionObserver(function(entries, observer) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            let lazyImage = entry.target;
+                            lazyImage.src = lazyImage.dataset.src;
+                            lazyImage.classList.remove("lazy");
+                            lazyImageObserver.unobserve(lazyImage);
+                        }
+                    });
+                });
+
+                lazyImages.forEach(function(lazyImage) {
+                    lazyImageObserver.observe(lazyImage);
+                });
+            } else {
+                // Fallback for browsers that don't support IntersectionObserver
+                lazyImages.forEach(function(lazyImage) {
+                    lazyImage.src = lazyImage.dataset.src;
+                    lazyImage.classList.remove("lazy");
+                });
+            }
+        });
+    </script>
 </body>
 </html>
