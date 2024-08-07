@@ -193,4 +193,4 @@ def back():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(port=8888)
+    app.run(port=8888, threaded=True)
