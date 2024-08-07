@@ -1,8 +1,28 @@
+# Environment variables file
 .env
+
+# Python bytecode
 __pycache__/
 *.pyc
+
+# Other files and folders
 *.pyo
 *.pyd
+*.db
+*.sqlite3
+
+# Deployment files
+app.yaml
+
+# IDE-specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS-specific files
 .DS_Store
-venv/
-config.py
+Thumbs.db
