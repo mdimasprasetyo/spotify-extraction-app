@@ -1,9 +1,0 @@
-runtime: python39
-entrypoint: gunicorn -w 4 -b :$PORT app:app
-env_variables:
-  SPOTIFY_CLIENT_ID: aade20d0c73b48a88785284d8667ca04
-  SPOTIFY_CLIENT_SECRET: "bbdafa7d03854407b927ea25b1b5c6ff"
-
-handlers:
-- url: /.*
-  script: auto
