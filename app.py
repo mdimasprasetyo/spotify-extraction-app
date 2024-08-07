@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 import re
 import urllib.parse
+import logging
 
 app = Flask(__name__)
 
@@ -16,6 +17,14 @@ load_dotenv()
 CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
 CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
 
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+
+# Validate environment variables
+if not CLIENT_ID or not CLIENT_SECRET:
+    logging.error("Spotify API credentials are not set in the environment variables.")
+    exit(1)
+
 def get_access_token():
     url = 'https://accounts.spotify.com/api/token'
     headers = {
@@ -25,30 +34,15 @@ def get_access_token():
         'grant_type': 'client_credentials'
     }
     response = requests.post(url, headers=headers, data=data, auth=(CLIENT_ID, CLIENT_SECRET))
+    response.raise_for_status()
     return response.json()['access_token']
 
-def get_track_info(access_token, track_id):
-    url = f'https://api.spotify.com/v1/tracks/{track_id}'
+def make_spotify_request(endpoint, access_token):
     headers = {
         'Authorization': f'Bearer {access_token}'
     }
-    response = requests.get(url, headers=headers)
-    return response.json()
-
-def get_album_info(access_token, album_id):
-    url = f'https://api.spotify.com/v1/albums/{album_id}'
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.get(url, headers=headers)
-    return response.json()
-
-def get_playlist_info(access_token, playlist_id):
-    url = f'https://api.spotify.com/v1/playlists/{playlist_id}'
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.get(url, headers=headers)
+    response = requests.get(endpoint, headers=headers)
+    response.raise_for_status()
     return response.json()
 
 def sanitize_filename(filename):
@@ -57,6 +51,7 @@ def sanitize_filename(filename):
 
 def save_image(image_url):
     response = requests.get(image_url)
+    response.raise_for_status()
     img = Image.open(BytesIO(response.content))
     img_io = BytesIO()
     img.save(img_io, format='PNG')
@@ -76,32 +71,37 @@ def spotify_url_to_id(url):
 def get_spotify_code(uri):
     url = f'https://scannables.scdn.co/uri/plain/svg/ffffff/black/640/{uri}'
     response = requests.get(url)
+    response.raise_for_status()
     return response.content
 
-def get_track_title_artist(track_id):
+def get_spotify_info(content_type, content_id):
     access_token = get_access_token()
-    track_info = get_track_info(access_token, track_id)
-    title = track_info['name']
-    artists = [artist['name'] for artist in track_info['artists']]
-    artist = ', '.join(artists)
-    album_art_url = track_info['album']['images'][0]['url']
-    return title, artist, album_art_url
-
-def get_album_title_artist(album_id):
-    access_token = get_access_token()
-    album_info = get_album_info(access_token, album_id)
-    title = album_info['name']
-    artists = [artist['name'] for artist in album_info['artists']]
-    artist = ', '.join(artists)
-    album_art_url = album_info['images'][0]['url']
-    return title, artist, album_art_url
-
-def get_playlist_title_artist(playlist_id):
-    access_token = get_access_token()
-    playlist_info = get_playlist_info(access_token, playlist_id)
-    title = playlist_info['name']
-    artist = playlist_info['owner']['display_name']  # Set artist name to playlist owner
-    album_art_url = playlist_info['images'][0]['url']
+    if content_type == 'track':
+        endpoint = f'https://api.spotify.com/v1/tracks/{content_id}'
+    elif content_type == 'album':
+        endpoint = f'https://api.spotify.com/v1/albums/{content_id}'
+    elif content_type == 'playlist':
+        endpoint = f'https://api.spotify.com/v1/playlists/{content_id}'
+    else:
+        raise ValueError("Unsupported content type")
+    
+    info = make_spotify_request(endpoint, access_token)
+    
+    if content_type == 'track':
+        title = info['name']
+        artists = [artist['name'] for artist in info['artists']]
+        artist = ', '.join(artists)
+        album_art_url = info['album']['images'][0]['url']
+    elif content_type == 'album':
+        title = info['name']
+        artists = [artist['name'] for artist in info['artists']]
+        artist = ', '.join(artists)
+        album_art_url = info['images'][0]['url']
+    elif content_type == 'playlist':
+        title = info['name']
+        artist = info['owner']['display_name']
+        album_art_url = info['images'][0]['url']
+    
     return title, artist, album_art_url
 
 @app.route('/')
@@ -111,20 +111,17 @@ def index():
 @app.route('/result', methods=['POST'])
 def result():
     spotify_url = request.form['spotify_url']
-    track_id, content_type = spotify_url_to_id(spotify_url)
-    if track_id is None:
+    content_id, content_type = spotify_url_to_id(spotify_url)
+    if content_id is None:
         return "Invalid Spotify URL", 400
 
-    access_token = get_access_token()
-
-    if content_type == 'track':
-        title, artist, album_art_url = get_track_title_artist(track_id)
-    elif content_type == 'album':
-        title, artist, album_art_url = get_album_title_artist(track_id)
-    elif content_type == 'playlist':
-        title, artist, album_art_url = get_playlist_title_artist(track_id)
-    else:
-        return "Unsupported Spotify URL type", 400
+    try:
+        title, artist, album_art_url = get_spotify_info(content_type, content_id)
+    except ValueError as e:
+        return str(e), 400
+    except requests.RequestException as e:
+        logging.error(f"Error fetching Spotify data: {e}")
+        return "Error fetching Spotify data", 500
 
     # Sanitize title and artist for filenames
     sanitized_title = sanitize_filename(title)
@@ -136,7 +133,7 @@ def result():
     album_art_img_io = save_image(album_art_url)
 
     # Generate Spotify code
-    spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{track_id}')
+    spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{content_id}')
     spotify_code_io = BytesIO(spotify_code_svg)
 
     return render_template('result.html',
@@ -149,16 +146,15 @@ def result():
 @app.route('/download/<file_type>')
 def download(file_type):
     spotify_url = request.args.get('spotify_url')
-    track_id, content_type = spotify_url_to_id(spotify_url)
+    content_id, content_type = spotify_url_to_id(spotify_url)
 
-    if content_type == 'track':
-        title, artist, album_art_url = get_track_title_artist(track_id)
-    elif content_type == 'album':
-        title, artist, album_art_url = get_album_title_artist(track_id)
-    elif content_type == 'playlist':
-        title, artist, album_art_url = get_playlist_title_artist(track_id)
-    else:
-        return "Unsupported Spotify URL type", 400
+    try:
+        title, artist, album_art_url = get_spotify_info(content_type, content_id)
+    except ValueError as e:
+        return str(e), 400
+    except requests.RequestException as e:
+        logging.error(f"Error fetching Spotify data: {e}")
+        return "Error fetching Spotify data", 500
 
     sanitized_title = sanitize_filename(title)
     sanitized_artist = sanitize_filename(artist)
@@ -169,7 +165,7 @@ def download(file_type):
         mimetype = 'image/png'
     elif file_type == 'spotify_code':
         file_name = f'{sanitized_title}_{sanitized_artist}_spotify_code.svg'
-        file_content = get_spotify_code(f'spotify:{content_type}:{track_id}')
+        file_content = get_spotify_code(f'spotify:{content_type}:{content_id}')
         mimetype = 'image/svg+xml'
     else:
         return "File type not supported", 400
