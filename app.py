@@ -82,7 +82,8 @@ def get_track_title_artist(track_id):
     access_token = get_access_token()
     track_info = get_track_info(access_token, track_id)
     title = track_info['name']
-    artist = track_info['artists'][0]['name']
+    artists = [artist['name'] for artist in track_info['artists']]
+    artist = ', '.join(artists)
     album_art_url = track_info['album']['images'][0]['url']
     return title, artist, album_art_url
 
@@ -90,7 +91,8 @@ def get_album_title_artist(album_id):
     access_token = get_access_token()
     album_info = get_album_info(access_token, album_id)
     title = album_info['name']
-    artist = album_info['artists'][0]['name']
+    artists = [artist['name'] for artist in album_info['artists']]
+    artist = ', '.join(artists)
     album_art_url = album_info['images'][0]['url']
     return title, artist, album_art_url
 
@@ -116,20 +118,11 @@ def result():
     access_token = get_access_token()
 
     if content_type == 'track':
-        track_info = get_track_info(access_token, track_id)
-        title = track_info['name']
-        artist = track_info['artists'][0]['name']
-        album_art_url = track_info['album']['images'][0]['url']
+        title, artist, album_art_url = get_track_title_artist(track_id)
     elif content_type == 'album':
-        album_info = get_album_info(access_token, track_id)
-        title = album_info['name']
-        artist = album_info['artists'][0]['name']
-        album_art_url = album_info['images'][0]['url']
+        title, artist, album_art_url = get_album_title_artist(track_id)
     elif content_type == 'playlist':
-        playlist_info = get_playlist_info(access_token, track_id)
-        title = playlist_info['name']
-        artist = playlist_info['owner']['display_name']  # Set artist name to playlist owner
-        album_art_url = playlist_info['images'][0]['url']
+        title, artist, album_art_url = get_playlist_title_artist(track_id)
     else:
         return "Unsupported Spotify URL type", 400
 

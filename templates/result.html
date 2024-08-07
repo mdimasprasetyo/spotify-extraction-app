@@ -48,19 +48,15 @@
     <p><strong>Artist:</strong> {{ artist }}</p>
     <div>
         <h3>Album Art:</h3>
-        <img src="placeholder.jpg" data-src="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art" class="lazy">
-        <noscript>
-            <img src="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art">
-        </noscript>
+        <!-- Replace placeholder with the actual image URL from the backend -->
+        <img src="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art">
         <br>
         <a class="download-button" href="{{ url_for('download', file_type='album_art', spotify_url=spotify_url) }}" download>Download Album Art</a>
     </div>
     <div>
         <h3>Spotify Code:</h3>
-        <img src="placeholder.jpg" data-src="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" alt="Spotify Code" class="lazy">
-        <noscript>
-            <img src="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" alt="Spotify Code">
-        </noscript>
+        <!-- Replace placeholder with the actual image URL from the backend -->
+        <img src="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" alt="Spotify Code">
         <br>
         <a class="download-button" href="{{ url_for('download', file_type='spotify_code', spotify_url=spotify_url) }}" download>Download Spotify Code</a>
     </div>
