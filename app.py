@@ -1,27 +1,25 @@
 import requests
 from flask import Flask, request, render_template, send_file, Response, redirect, url_for
+from flask import Blueprint
 from PIL import Image
 from io import BytesIO
-import os
-from dotenv import load_dotenv
 import re
 import urllib.parse
 import logging
-
-app = Flask(__name__)
+from dotenv import load_dotenv
+from config import Config
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Get Spotify API credentials from environment variables
-CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
-CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+app = Flask(__name__)
+app.config.from_object(Config)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
 # Validate environment variables
-if not CLIENT_ID or not CLIENT_SECRET:
+if not app.config['SPOTIFY_CLIENT_ID'] or not app.config['SPOTIFY_CLIENT_SECRET']:
     logging.error("Spotify API credentials are not set in the environment variables.")
     exit(1)
 
@@ -33,7 +31,7 @@ def get_access_token():
     data = {
         'grant_type': 'client_credentials'
     }
-    response = requests.post(url, headers=headers, data=data, auth=(CLIENT_ID, CLIENT_SECRET))
+    response = requests.post(url, headers=headers, data=data, auth=(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
     response.raise_for_status()
     return response.json()['access_token']
 
@@ -104,11 +102,14 @@ def get_spotify_info(content_type, content_id):
     
     return title, artist, album_art_url
 
-@app.route('/')
+# Create a Blueprint for main routes
+main_bp = Blueprint('main', __name__)
+
+@main_bp.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/result', methods=['POST'])
+@main_bp.route('/result', methods=['POST'])
 def result():
     spotify_url = request.form['spotify_url']
     content_id, content_type = spotify_url_to_id(spotify_url)
@@ -143,7 +144,7 @@ def result():
                           spotify_code_url=urllib.parse.quote(spotify_code_filename),
                           spotify_url=spotify_url)
 
-@app.route('/download/<file_type>')
+@main_bp.route('/download/<file_type>')
 def download(file_type):
     spotify_url = request.args.get('spotify_url')
     content_id, content_type = spotify_url_to_id(spotify_url)
@@ -177,9 +178,21 @@ def download(file_type):
                     mimetype=mimetype,
                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{file_name_encoded}"})
 
-@app.route('/back')
+@main_bp.route('/back')
 def back():
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
+
+# Register the Blueprint
+app.register_blueprint(main_bp)
+
+# Add security-related HTTP headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
 
 if __name__ == '__main__':
     app.run(port=8888, threaded=True)
