@@ -40,14 +40,37 @@
         button:hover {
             background-color: #0056b3;
         }
+        /* Spinner styles */
+        .spinner {
+            display: none;
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #007bff;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <h1>Enter Spotify Link (Song, Album, Playlist)</h1>
-    <form action="/result" method="post">
+    <form id="spotifyForm" action="/result" method="post">
         <label for="spotify_url">Paste URL Here:</label>
         <input type="url" id="spotify_url" name="spotify_url" placeholder="https://open.spotify.com/track/..." required>
         <button type="submit">Get Info</button>
     </form>
+    <!-- Spinner element -->
+    <div id="spinner" class="spinner"></div>
+
+    <script>
+        document.getElementById('spotifyForm').addEventListener('submit', function() {
+            document.getElementById('spinner').style.display = 'block';
+        });
+    </script>
 </body>
 </html>
