@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, request, render_template, send_file, Response, redirect, url_for
+from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash
 from flask import Blueprint
 from PIL import Image
 from io import BytesIO
@@ -14,6 +14,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.secret_key = 'your_secret_key'  # Ensure a secret key is set for session management
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -114,15 +115,18 @@ def result():
     spotify_url = request.form['spotify_url']
     content_id, content_type = spotify_url_to_id(spotify_url)
     if content_id is None:
-        return "Invalid Spotify URL", 400
+        flash("Invalid Spotify URL. Please try again.")
+        return redirect(url_for('main.index'))
 
     try:
         title, artist, album_art_url = get_spotify_info(content_type, content_id)
     except ValueError as e:
-        return str(e), 400
+        flash(str(e))
+        return redirect(url_for('main.index'))
     except requests.RequestException as e:
         logging.error(f"Error fetching Spotify data: {e}")
-        return "Error fetching Spotify data", 500
+        flash("Error fetching Spotify data. Please try again later.")
+        return redirect(url_for('main.index'))
 
     # Sanitize title and artist for filenames
     sanitized_title = sanitize_filename(title)

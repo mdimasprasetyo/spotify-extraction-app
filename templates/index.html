@@ -31,21 +31,20 @@
             padding: 10px;
             font-size: 16px;
             color: white;
-            background-color: #0056b3; /* Updated background color for better contrast */
+            background-color: #0056b3;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             margin-top: 10px;
         }
         button:hover {
-            background-color: #003d7a; /* Darker color for hover state */
+            background-color: #003d7a;
         }
-        /* Spinner styles */
         .spinner {
             display: none;
             border: 8px solid #f3f3f3;
             border-radius: 50%;
-            border-top: 8px solid #0056b3; /* Updated spinner color */
+            border-top: 8px solid #0056b3;
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
@@ -55,6 +54,13 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Error message styles */
+        .error-message {
+            color: red;
+            font-size: 16px;
+            margin-top: 20px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -62,15 +68,31 @@
     <form id="spotifyForm" action="/result" method="post">
         <label for="spotify_url">Paste URL Here:</label>
         <input type="url" id="spotify_url" name="spotify_url" placeholder="https://open.spotify.com/track/..." required>
-        <button type="submit">Get Info</button>
+        <button type="submit" onclick="clearErrorMessage()">Get Info</button>
     </form>
-    <!-- Spinner element -->
     <div id="spinner" class="spinner"></div>
+    <div id="error-message" class="error-message">Invalid Spotify URL. Please try again.</div>
 
     <script>
-        document.getElementById('spotifyForm').addEventListener('submit', function() {
-            document.getElementById('spinner').style.display = 'block';
+        document.getElementById('spotifyForm').addEventListener('submit', function(event) {
+            var url = document.getElementById('spotify_url').value;
+            if (!isValidSpotifyUrl(url)) {
+                event.preventDefault();
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('spinner').style.display = 'none';
+            } else {
+                document.getElementById('spinner').style.display = 'block';
+            }
         });
+
+        function isValidSpotifyUrl(url) {
+            var regex = /^(https:\/\/open\.spotify\.com\/(track|album|playlist)\/[A-Za-z0-9]+)(\?.*)?$/;
+            return regex.test(url);
+        }
+
+        function clearErrorMessage() {
+            document.getElementById('error-message').style.display = 'none';
+        }
     </script>
 </body>
 </html>
