@@ -127,6 +127,7 @@ def index():
 def result():
     spotify_url = request.form['spotify_url']
     content_id, content_type = spotify_url_to_id(spotify_url)
+    
     if content_id is None:
         flash("Invalid Spotify URL. Please try again.")
         return redirect(url_for('main.index'))
@@ -147,9 +148,12 @@ def result():
     spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{content_id}')
     spotify_code_io = BytesIO(spotify_code_svg)
 
+    link_type = content_type.capitalize()  # Capitalize first letter for display
+    
     return render_template('result.html',
                           title=title,
                           artist=artist,
+                          link_type=link_type,
                           album_art_url=urllib.parse.quote(album_art_filename),
                           spotify_code_url=urllib.parse.quote(spotify_code_filename),
                           spotify_url=spotify_url)
