@@ -10,6 +10,7 @@ import urllib.parse
 import logging
 from dotenv import load_dotenv
 from config import Config
+import hashlib
 
 # Load environment variables from .env file
 load_dotenv()
@@ -117,6 +118,9 @@ def get_spotify_info(content_type, content_id):
     
     return title, artist, album_art_url
 
+def generate_etag(file_content):
+    return hashlib.md5(file_content).hexdigest()
+
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
@@ -187,9 +191,17 @@ def download(file_type):
 
     file_name_encoded = urllib.parse.quote(file_name)
 
-    return Response(file_content,
-                    mimetype=mimetype,
-                    headers={"Content-Disposition": f"attachment; filename*=UTF-8''{file_name_encoded}"})
+    # Set cache headers to cache for 1 day (86400 seconds)
+    response = Response(file_content, mimetype=mimetype,
+                        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{file_name_encoded}"})
+    response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 1 day
+    response.headers['ETag'] = generate_etag(file_content)
+    
+    # Check if the ETag matches to handle 304 Not Modified
+    if request.headers.get('If-None-Match') == response.headers['ETag']:
+        response.status_code = 304  # Not modified
+    
+    return response
 
 @main_bp.route('/back')
 def back():
