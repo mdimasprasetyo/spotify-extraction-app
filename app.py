@@ -2,9 +2,9 @@ import requests
 from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash
 from flask import Blueprint
 from flask_caching import Cache
-import time
 from PIL import Image
 from io import BytesIO
+from tenacity import retry, wait_fixed, stop_after_attempt
 import re
 import urllib.parse
 import logging
@@ -16,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
-app.secret_key = app.config['SECRET_KEY']  # Ensure a secret key is set for session management
+app.secret_key = app.config['SECRET_KEY']
 
 # Initialize cache
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
@@ -42,13 +42,18 @@ def get_access_token():
         'grant_type': 'client_credentials'
     }
     response = requests.post(url, headers=headers, data=data, auth=(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
+    
+    # Handle token fetch errors
+    if response.status_code == 401:
+        logging.error("Spotify API credentials are invalid.")
+        raise Exception("Invalid Spotify API credentials")
+
     response.raise_for_status()
     token = response.json()['access_token']
-
-    # Cache the token for 1 hour (Spotify tokens usually last 1 hour)
     cache.set('spotify_access_token', token, timeout=60*60)
     return token
 
+@retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
 def make_spotify_request(endpoint, access_token):
     headers = {
         'Authorization': f'Bearer {access_token}'
@@ -58,7 +63,6 @@ def make_spotify_request(endpoint, access_token):
     return response.json()
 
 def sanitize_filename(filename):
-    """Sanitize filename to be filesystem-friendly."""
     return re.sub(r'[<>:"/\\|?*]', '', filename).strip()
 
 def save_image(image_url):
@@ -71,7 +75,6 @@ def save_image(image_url):
     return img_io
 
 def spotify_url_to_id(url):
-    """Convert Spotify URL to URI or ID format."""
     if 'track' in url:
         return url.split('/')[-1].split('?')[0], 'track'
     elif 'album' in url:
@@ -101,13 +104,11 @@ def get_spotify_info(content_type, content_id):
     
     if content_type == 'track':
         title = info['name']
-        artists = [artist['name'] for artist in info['artists']]
-        artist = ', '.join(artists)
+        artist = ', '.join(artist['name'] for artist in info['artists'])
         album_art_url = info['album']['images'][0]['url']
     elif content_type == 'album':
         title = info['name']
-        artists = [artist['name'] for artist in info['artists']]
-        artist = ', '.join(artists)
+        artist = ', '.join(artist['name'] for artist in info['artists'])
         album_art_url = info['images'][0]['url']
     elif content_type == 'playlist':
         title = info['name']
@@ -116,7 +117,6 @@ def get_spotify_info(content_type, content_id):
     
     return title, artist, album_art_url
 
-# Create a Blueprint for main routes
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
@@ -133,24 +133,17 @@ def result():
 
     try:
         title, artist, album_art_url = get_spotify_info(content_type, content_id)
-    except ValueError as e:
-        flash(str(e))
-        return redirect(url_for('main.index'))
-    except requests.RequestException as e:
+    except Exception as e:
         logging.error(f"Error fetching Spotify data: {e}")
         flash("Error fetching Spotify data. Please try again later.")
         return redirect(url_for('main.index'))
 
-    # Sanitize title and artist for filenames
     sanitized_title = sanitize_filename(title)
     sanitized_artist = sanitize_filename(artist)
     album_art_filename = f'{sanitized_title}_{sanitized_artist}_album_art.png'
     spotify_code_filename = f'{sanitized_title}_{sanitized_artist}_spotify_code.svg'
 
-    # Save album art with unique name based on title and artist
     album_art_img_io = save_image(album_art_url)
-
-    # Generate Spotify code
     spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{content_id}')
     spotify_code_io = BytesIO(spotify_code_svg)
 
@@ -188,7 +181,6 @@ def download(file_type):
     else:
         return "File type not supported", 400
 
-    # Encode file name for safe HTTP headers
     file_name_encoded = urllib.parse.quote(file_name)
 
     return Response(file_content,
@@ -199,10 +191,8 @@ def download(file_type):
 def back():
     return redirect(url_for('main.index'))
 
-# Register the Blueprint
 app.register_blueprint(main_bp)
 
-# Add security-related HTTP headers
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
