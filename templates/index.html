@@ -86,7 +86,7 @@
         });
 
         function isValidSpotifyUrl(url) {
-            var regex = /^(https:\/\/open\.spotify\.com\/(track|album|playlist)\/[A-Za-z0-9]+)(\?.*)?$/;
+            var regex = /^https:\/\/open\.spotify\.com(?:\/intl-[\w-]+)?\/(track|album|playlist)\/[A-Za-z0-9]{22}(?:\?.*)?$/;
             return regex.test(url);
         }
 
