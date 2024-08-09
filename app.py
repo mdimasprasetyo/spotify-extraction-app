@@ -1,6 +1,8 @@
 import requests
 from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash
 from flask import Blueprint
+from flask_caching import Cache
+import time
 from PIL import Image
 from io import BytesIO
 import re
@@ -14,7 +16,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
-app.secret_key = 'your_secret_key'  # Ensure a secret key is set for session management
+app.secret_key = app.config['SECRET_KEY']  # Ensure a secret key is set for session management
+
+# Initialize cache
+cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +30,10 @@ if not app.config['SPOTIFY_CLIENT_ID'] or not app.config['SPOTIFY_CLIENT_SECRET'
     exit(1)
 
 def get_access_token():
+    cached_token = cache.get('spotify_access_token')
+    if cached_token:
+        return cached_token
+
     url = 'https://accounts.spotify.com/api/token'
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -34,7 +43,11 @@ def get_access_token():
     }
     response = requests.post(url, headers=headers, data=data, auth=(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
     response.raise_for_status()
-    return response.json()['access_token']
+    token = response.json()['access_token']
+
+    # Cache the token for 1 hour (Spotify tokens usually last 1 hour)
+    cache.set('spotify_access_token', token, timeout=60*60)
+    return token
 
 def make_spotify_request(endpoint, access_token):
     headers = {
