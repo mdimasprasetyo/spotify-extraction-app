@@ -4,6 +4,7 @@ from flask import Blueprint
 from flask_caching import Cache
 from PIL import Image
 from io import BytesIO
+from tenacity import retry, wait_fixed, stop_after_attempt
 import re
 import urllib.parse
 import logging
@@ -41,12 +42,18 @@ def get_access_token():
         'grant_type': 'client_credentials'
     }
     response = requests.post(url, headers=headers, data=data, auth=(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
+    
+    # Handle token fetch errors
+    if response.status_code == 401:
+        logging.error("Spotify API credentials are invalid.")
+        raise Exception("Invalid Spotify API credentials")
+
     response.raise_for_status()
     token = response.json()['access_token']
-
     cache.set('spotify_access_token', token, timeout=60*60)
     return token
 
+@retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
 def make_spotify_request(endpoint, access_token):
     headers = {
         'Authorization': f'Bearer {access_token}'
@@ -126,10 +133,7 @@ def result():
 
     try:
         title, artist, album_art_url = get_spotify_info(content_type, content_id)
-    except ValueError as e:
-        flash(str(e))
-        return redirect(url_for('main.index'))
-    except requests.RequestException as e:
+    except Exception as e:
         logging.error(f"Error fetching Spotify data: {e}")
         flash("Error fetching Spotify data. Please try again later.")
         return redirect(url_for('main.index'))
