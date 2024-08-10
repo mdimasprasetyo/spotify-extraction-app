@@ -198,7 +198,7 @@ def download(file_type):
         file_content = save_image(album_art_url).getvalue()
         mimetype = 'image/png'
     elif file_type == 'spotify_code':
-        file_name = f'{sanitized_title}_{sanitized_artist}_spotify_code.svg'
+        file_name = f'{sanitized_title}_{sanitized_artist}_code.svg'
         file_content = get_spotify_code(f'spotify:{content_type}:{content_id}')
         mimetype = 'image/svg+xml'
     else:
