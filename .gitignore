@@ -13,6 +13,7 @@ __pycache__/
 *.pyd
 *.db
 *.sqlite3
+app.log
 
 # Deployment files
 app.yaml
