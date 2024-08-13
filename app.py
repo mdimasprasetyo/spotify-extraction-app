@@ -87,6 +87,8 @@ def spotify_url_to_id(url):
         return url.split('/')[-1].split('?')[0], 'album'
     elif 'playlist' in url:
         return url.split('/')[-1].split('?')[0], 'playlist'
+    elif 'artist' in url:
+        return url.split('/')[-1].split('?')[0], 'artist'
     return None, None
 
 def get_spotify_code(uri):
@@ -104,6 +106,8 @@ def get_spotify_info(content_type, content_id):
         endpoint = f'https://api.spotify.com/v1/albums/{content_id}'
     elif content_type == 'playlist':
         endpoint = f'https://api.spotify.com/v1/playlists/{content_id}'
+    elif content_type == 'artist':
+        endpoint = f'https://api.spotify.com/v1/artists/{content_id}'
     else:
         raise ValueError("Unsupported content type")
 
@@ -125,6 +129,10 @@ def get_spotify_info(content_type, content_id):
         title = info['name']
         artist = info['owner']['display_name']
         album_art_url = info['images'][0]['url']
+    elif content_type == 'artist':
+        title = info['name']
+        artist = ''  # Artist page does not have an artist name field, use the title as the name
+        album_art_url = info['images'][0]['url'] if info['images'] else None
 
     logger.info(f"Fetched Spotify info: Title: {title}, Artist: {artist}, Type: {content_type}")
     return title, artist, album_art_url
@@ -161,7 +169,7 @@ def result():
     album_art_filename = f'{sanitized_title}_{sanitized_artist}_album_art.png'
     spotify_code_filename = f'{sanitized_title}_{sanitized_artist}_spotify_code.svg'
 
-    album_art_img_io = save_image(album_art_url)
+    album_art_img_io = save_image(album_art_url) if album_art_url else BytesIO()
     spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{content_id}')
     spotify_code_io = BytesIO(spotify_code_svg)
 

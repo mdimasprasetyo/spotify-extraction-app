@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Track Info</title>
+    <title>Spotify Info</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -64,7 +64,7 @@
     </style>
 </head>
 <body>
-    <h1>Enter Spotify Link (Song, Album, Playlist)</h1>
+    <h1>Enter Spotify Link (Song, Album, Playlist, Artist)</h1>
     <form id="spotifyForm" action="/result" method="post">
         <label for="spotify_url">Paste URL Here:</label>
         <input type="url" id="spotify_url" name="spotify_url" placeholder="https://open.spotify.com/track/..." required>
@@ -86,7 +86,7 @@
         });
 
         function isValidSpotifyUrl(url) {
-            var regex = /^https:\/\/open\.spotify\.com(?:\/intl-[\w-]+)?\/(track|album|playlist)\/[A-Za-z0-9]{22}(?:\?.*)?$/;
+            var regex = /^https:\/\/open\.spotify\.com(?:\/intl-[\w-]+)?\/(track|album|playlist|artist)\/[A-Za-z0-9]{22}(?:\?.*)?$/;
             return regex.test(url);
         }
 
