@@ -89,6 +89,10 @@ def spotify_url_to_id(url):
         return url.split('/')[-1].split('?')[0], 'playlist'
     elif 'artist' in url:
         return url.split('/')[-1].split('?')[0], 'artist'
+    elif 'show' in url:
+        return url.split('/')[-1].split('?')[0], 'show'
+    elif 'episode' in url:
+        return url.split('/')[-1].split('?')[0], 'episode'
     return None, None
 
 def get_spotify_code(uri):
@@ -108,6 +112,10 @@ def get_spotify_info(content_type, content_id):
         endpoint = f'https://api.spotify.com/v1/playlists/{content_id}'
     elif content_type == 'artist':
         endpoint = f'https://api.spotify.com/v1/artists/{content_id}'
+    elif content_type == 'show':
+        endpoint = f'https://api.spotify.com/v1/shows/{content_id}'
+    elif content_type == 'episode':
+        endpoint = f'https://api.spotify.com/v1/episodes/{content_id}'
     else:
         raise ValueError("Unsupported content type")
 
@@ -117,13 +125,13 @@ def get_spotify_info(content_type, content_id):
         logger.error(f"Error fetching Spotify info for {content_type} {content_id}: {e}")
         raise
     
-    if content_type == 'track':
+    if content_type == 'track' or content_type == 'episode':
         title = info['name']
-        artist = ', '.join(artist['name'] for artist in info['artists'])
-        album_art_url = info['album']['images'][0]['url']
-    elif content_type == 'album':
+        artist = ', '.join(artist['name'] for artist in info['artists']) if content_type == 'track' else info['show']['publisher']
+        album_art_url = info['images'][0]['url'] if 'images' in info else info['show']['images'][0]['url']
+    elif content_type == 'album' or content_type == 'show':
         title = info['name']
-        artist = ', '.join(artist['name'] for artist in info['artists'])
+        artist = ', '.join(artist['name'] for artist in info['artists']) if content_type == 'album' else info['publisher']
         album_art_url = info['images'][0]['url']
     elif content_type == 'playlist':
         title = info['name']
@@ -131,7 +139,7 @@ def get_spotify_info(content_type, content_id):
         album_art_url = info['images'][0]['url']
     elif content_type == 'artist':
         title = info['name']
-        artist = ''  # Artist page does not have an artist name field, use the title as the name
+        artist = ''
         album_art_url = info['images'][0]['url'] if info['images'] else None
 
     logger.info(f"Fetched Spotify info: Title: {title}, Artist: {artist}, Type: {content_type}")
@@ -173,7 +181,7 @@ def result():
     spotify_code_svg = get_spotify_code(f'spotify:{content_type}:{content_id}')
     spotify_code_io = BytesIO(spotify_code_svg)
 
-    link_type = content_type.capitalize()  # Capitalize first letter for display
+    link_type = content_type.capitalize()
     
     logger.info(f"Rendered result page for Spotify URL {spotify_url}")
     return render_template('result.html',
@@ -217,12 +225,12 @@ def download(file_type):
 
     response = Response(file_content, mimetype=mimetype,
                         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{file_name_encoded}"})
-    response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 1 day
+    response.headers['Cache-Control'] = 'public, max-age=86400'
     response.headers['ETag'] = generate_etag(file_content)
     
     if request.headers.get('If-None-Match') == response.headers['ETag']:
         logger.info(f"File {file_name} not modified, returning 304.")
-        response.status_code = 304  # Not modified
+        response.status_code = 304
     
     logger.info(f"Serving download for {file_name}")
     return response
