@@ -11,13 +11,15 @@ import logging
 from dotenv import load_dotenv
 from config import Config
 import hashlib
+import secrets
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
-app.secret_key = app.config['SECRET_KEY']
+#app.secret_key = app.config['SECRET_KEY']
+app.secret_key = secrets.token_hex(16)
 
 # Initialize cache
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
@@ -125,9 +127,13 @@ def get_spotify_info(content_type, content_id):
         logger.error(f"Error fetching Spotify info for {content_type} {content_id}: {e}")
         raise
     
-    if content_type == 'track' or content_type == 'episode':
+    if content_type == 'track':
         title = info['name']
-        artist = ', '.join(artist['name'] for artist in info['artists']) if content_type == 'track' else info['show']['publisher']
+        artist = ', '.join(artist['name'] for artist in info['artists'])
+        album_art_url = info['album']['images'][0]['url'] if 'images' in info['album'] else None
+    elif content_type == 'episode':
+        title = info['name']
+        artist = info['show']['publisher']
         album_art_url = info['images'][0]['url'] if 'images' in info else info['show']['images'][0]['url']
     elif content_type == 'album' or content_type == 'show':
         title = info['name']
