@@ -54,7 +54,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Error message styles */
         .error-message {
             color: red;
             font-size: 16px;
@@ -74,6 +73,22 @@
     <div id="error-message" class="error-message">Invalid Spotify URL. Please try again.</div>
 
     <script>
+        // Use pageshow event to handle page load from cache (back button)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Clear the input field and hide spinner on back navigation
+                document.getElementById('spotify_url').value = '';
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('error-message').style.display = 'none';
+            }
+        });
+
+        // Clear the input field when the page loads normally
+        window.onload = function() {
+            document.getElementById('spotify_url').value = '';
+            document.getElementById('spinner').style.display = 'none';
+        };
+
         document.getElementById('spotifyForm').addEventListener('submit', function(event) {
             var url = document.getElementById('spotify_url').value;
             if (!isValidSpotifyUrl(url)) {
