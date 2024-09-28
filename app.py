@@ -11,25 +11,19 @@ import logging
 from dotenv import load_dotenv
 from config import Config
 import hashlib
-import secrets
 
-# Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
-#app.secret_key = app.config['SECRET_KEY']
-app.secret_key = secrets.token_hex(16)
+app.secret_key = app.config['SECRET_KEY']
 
-# Initialize cache
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
 
-# Console logging setup
 logging.basicConfig(level=logging.DEBUG if app.debug else logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Validate environment variables
 if not app.config['SPOTIFY_CLIENT_ID'] or not app.config['SPOTIFY_CLIENT_SECRET']:
     logger.error("Spotify API credentials are not set in the environment variables.")
     exit(1)
