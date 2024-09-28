@@ -18,7 +18,7 @@ jobs:
       with:
         service_account_key: ${{ secrets.GCP_SA_KEY }}
         project_id: ${{ secrets.GCP_PROJECT_ID }}
-        export_default_credentials: false  # Set this to false
+        export_default_credentials: false  # Ensure this is false
 
     - name: Create JSON key file
       run: |
