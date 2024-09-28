@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Info</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -63,7 +64,8 @@
     </style>
 </head>
 <body>
-    <h1>Enter Spotify Link (Song, Album, Playlist, Artist, Show, Episode)</h1>
+    <h1>Enter Spotify Link</h1>
+    <h2>(Song, Album, Playlist, Artist, Show, Episode)</h2>
     <form id="spotifyForm" action="/result" method="post">
         <label for="spotify_url">Paste URL Here:</label>
         <input type="url" id="spotify_url" name="spotify_url" placeholder="https://open.spotify.com/track/..." required>
