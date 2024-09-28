@@ -20,9 +20,9 @@ jobs:
         project_id: ${{ secrets.GCP_PROJECT_ID }}
         export_default_credentials: false  # Set this to false
 
-    - name: Authenticate with Google Cloud
+    - name: Create JSON key file
       run: |
-        echo "${{ secrets.GCP_SA_KEY }}" | tr -d '\r' > "${HOME}/gcp-key.json"  # Ensure no carriage return
+        echo "${{ secrets.GCP_SA_KEY }}" | sed 's/\\n/\n/g' > "${HOME}/gcp-key.json"  # Replace \\n with actual newlines
         gcloud auth activate-service-account --key-file="${HOME}/gcp-key.json"
 
     - name: Verify gcloud configuration
