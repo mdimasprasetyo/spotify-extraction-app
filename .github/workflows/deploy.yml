@@ -19,10 +19,11 @@ jobs:
         version: 'latest'
 
     - name: Authenticate to Google Cloud
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: $HOME/gcloud-service-key.json
       run: |
         echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > $HOME/gcloud-service-key.json
-        gcloud auth activate-service-account --key-file=$HOME/gcloud-service-key.json
-      shell: bash
+        gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
 
     - name: Set GCP Project
       run: gcloud config set project main-nucleus-431709-v9
