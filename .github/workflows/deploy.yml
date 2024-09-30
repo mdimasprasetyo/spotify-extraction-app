@@ -18,15 +18,17 @@ jobs:
       with:
         version: 'latest'
 
-    - name: Authenticate to Google Cloud
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS: $HOME/gcloud-service-key.json
+    - name: Create service account key file
+      id: create_key_file
       run: |
+        # Create a temporary file for the service account key
         echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > $HOME/gcloud-service-key.json
-        gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+
+    - name: Authenticate to Google Cloud
+      run: gcloud auth activate-service-account --key-file=$HOME/gcloud-service-key.json
 
     - name: Set GCP Project
-      run: gcloud config set project main-nucleus-431709-v9
+      run: gcloud config set project main-nucleus-431709-v9  # Replace with your GCP project ID
 
     - name: Deploy to App Engine
       run: gcloud app deploy --quiet
