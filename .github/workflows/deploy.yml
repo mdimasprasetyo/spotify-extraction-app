@@ -5,8 +5,6 @@ on:
     branches:
       - master
 
-    workflow_dispatch:
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -18,11 +16,16 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
       with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        project_id: main-nucleus-431709-v9
         service_account_key: ${{ secrets.GCP_SA_KEY }}
         export_default_credentials: true
 
+    - name: Authenticate with GCP
+      run: |
+        echo ${{ secrets.GCP_SA_KEY }} > $HOME/gcloud-service-key.json
+        gcloud auth activate-service-account --key-file=$HOME/gcloud-service-key.json
+        gcloud config set project main-nucleus-431709-v9
+
     - name: Deploy to Google App Engine
       run: |
-        gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
         gcloud app deploy --quiet
