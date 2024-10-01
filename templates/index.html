@@ -80,33 +80,49 @@
                 document.getElementById('spotify_url').value = '';
                 document.getElementById('spinner').style.display = 'none';
                 document.getElementById('error-message').style.display = 'none';
+                enableButton(); // Ensure button is enabled on page show
             }
         });
-
+    
         window.onload = function() {
             document.getElementById('spotify_url').value = '';
             document.getElementById('spinner').style.display = 'none';
         };
-
+    
         document.getElementById('spotifyForm').addEventListener('submit', function(event) {
             var url = document.getElementById('spotify_url').value;
+            var button = event.target.querySelector('button');
+    
             if (!isValidSpotifyUrl(url)) {
                 event.preventDefault();
                 document.getElementById('error-message').style.display = 'block';
                 document.getElementById('spinner').style.display = 'none';
+                enableButton(); // Enable button if URL is invalid
             } else {
                 document.getElementById('spinner').style.display = 'block';
+                disableButton(button); // Disable button after click
             }
         });
-
+    
         function isValidSpotifyUrl(url) {
             var regex = /^https:\/\/open\.spotify\.com(?:\/intl-[\w-]+)?\/(track|album|playlist|artist|show|episode)\/[A-Za-z0-9]{22}(?:\?.*)?$/;
             return regex.test(url);
         }
-
+    
         function clearErrorMessage() {
             document.getElementById('error-message').style.display = 'none';
         }
-    </script>
+    
+        function disableButton(button) {
+            button.disabled = true;
+            button.innerHTML = "Processing..."; // Optional: change button text
+        }
+    
+        function enableButton() {
+            var button = document.querySelector('button[type="submit"]');
+            button.disabled = false;
+            button.innerHTML = "Get Info"; // Reset button text
+        }
+    </script>    
 </body>
 </html>
