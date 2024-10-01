@@ -5,67 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Info</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            text-align: center;
-        }
-        form {
-            display: inline-block;
-            text-align: left;
-            margin-top: 20px;
-        }
-        label {
-            font-size: 18px;
-        }
-        input[type="url"] {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            color: white;
-            background-color: #0056b3;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #003d7a;
-        }
-        button:disabled {
-            background-color: #a9a9a9;
-            cursor: not-allowed;
-        }
-        .spinner {
-            display: none;
-            border: 8px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 8px solid #0056b3;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .error-message {
-            color: red;
-            font-size: 16px;
-            margin-top: 20px;
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <h1>Enter Spotify Link</h1>
