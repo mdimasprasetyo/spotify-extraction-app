@@ -1,0 +1,118 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    text-align: center;
+}
+
+h1, h2, h3 {
+    margin: 10px 0;
+}
+
+/* Form Styles */
+form {
+    display: inline-block;
+    text-align: left;
+    margin-top: 20px;
+}
+
+label {
+    font-size: 18px;
+}
+
+input[type="url"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    color: white;
+    background-color: #0056b3;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #003d7a;
+}
+
+button:disabled {
+    background-color: #a9a9a9;
+    cursor: not-allowed;
+}
+
+/* Spinner Styles */
+.spinner {
+    display: none;
+    border: 8px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 8px solid #0056b3;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error Message Styles */
+.error-message {
+    color: red;
+    font-size: 16px;
+    margin-top: 20px;
+    display: none;
+}
+
+/* Image Styles */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Button Styles */
+.download-button, .back-button {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 10px;
+    font-size: 16px;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.download-button {
+    background-color: #0056b3;
+}
+
+.download-button:hover {
+    background-color: #003d7a;
+}
+
+.back-button {
+    background-color: #5a6268;
+}
+
+.back-button:hover {
+    background-color: #343a40;
+}
+
+/* Responsive Styles */
+@media (max-width: 600px) {
+    .download-button, .back-button {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+}
