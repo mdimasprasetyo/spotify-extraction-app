@@ -77,8 +77,15 @@ button:disabled {
 
 /* Image Styles */
 img {
-    max-width: 100%;
-    height: auto;
+    max-width: 100%; /* Ensures the image does not exceed the width of its container */
+    height: auto; /* Maintains aspect ratio */
+}
+
+/* New styles for album art and Spotify code images */
+.album-art, .spotify-code {
+    max-width: 300px; /* Adjust the maximum width as needed */
+    max-height: 300px; /* Set a maximum height if necessary */
+    margin: 10px 0; /* Optional: add margin for spacing */
 }
 
 /* Button Styles */
