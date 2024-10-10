@@ -9,7 +9,7 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
+<body class="result-page">
     <h1>{{ link_type }} Info</h1>
     {% if link_type == 'Artist' %}
         <h2>{{ title }}</h2>
@@ -32,12 +32,13 @@
             <a class="download-button" href="{{ url_for('main.download', file_type='spotify_code', spotify_url=spotify_url) }}" download>Download Spotify Code</a>
         </div>
     {% else %}
-        <div>
+        <div class="album-art-container">
             <h3>Album Art:</h3>
             <img class="album-art" src="{{ url_for('main.download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art for {{ title }} by {{ artist }}" loading="lazy">
             <br>
             <a class="download-button" href="{{ url_for('main.download', file_type='album_art', spotify_url=spotify_url) }}" download>Download Album Art</a>
         </div>
+    
         <div>
             <h3>Spotify Code:</h3>
             <img class="spotify-code" src="{{ url_for('main.download', file_type='spotify_code', spotify_url=spotify_url) }}" alt="Spotify Code for {{ title }} by {{ artist }}" loading="lazy">
