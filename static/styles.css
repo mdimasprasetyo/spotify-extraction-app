@@ -81,11 +81,21 @@ img {
     height: auto; /* Maintains aspect ratio */
 }
 
-/* New styles for album art and Spotify code images */
-.album-art, .spotify-code {
+/* Scoped Styles for result.html */
+.result-page .album-art,
+.result-page .spotify-code {
     max-width: 300px; /* Adjust the maximum width as needed */
     max-height: 300px; /* Set a maximum height if necessary */
     margin: 10px 0; /* Optional: add margin for spacing */
+}
+
+/* Album Art Container Styles */
+.result-page .album-art-container {
+    background-color: #f0f0f0; /* Light gray background */
+    padding: 20px;
+    display: inline-block;
+    border-radius: 10px; /* Rounded corners */
+    margin: 10px 0; /* Spacing between elements */
 }
 
 /* Button Styles */
