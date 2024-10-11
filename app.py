@@ -1,52 +1,58 @@
 import requests
-from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash
-from flask import Blueprint
-from flask_caching import Cache
-from PIL import Image
-from io import BytesIO
-from tenacity import retry, wait_fixed, stop_after_attempt
 import re
 import urllib.parse
+import hashlib
 import logging
+from io import BytesIO
+from PIL import Image
+from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash, Blueprint
+from flask_caching import Cache
+from tenacity import retry, wait_fixed, stop_after_attempt
 from dotenv import load_dotenv
 from config import Config
-import hashlib
 
+# Load environment variables
 load_dotenv()
 
+# Initialize Flask app and configuration
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']
 
+# Initialize cache
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
 
+# Setup logging
 logging.basicConfig(level=logging.DEBUG if app.debug else logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-if not app.config['SPOTIFY_CLIENT_ID'] or not app.config['SPOTIFY_CLIENT_SECRET']:
-    logger.error("Spotify API credentials are not set in the environment variables.")
-    exit(1)
+# Validate Spotify credentials
+def validate_spotify_credentials():
+    if not app.config['SPOTIFY_CLIENT_ID'] or not app.config['SPOTIFY_CLIENT_SECRET']:
+        logger.error("Spotify API credentials are missing in environment variables.")
+        exit(1)
 
+validate_spotify_credentials()
+
+# Helper functions
 def get_access_token():
+    """Fetch and cache Spotify access token."""
     cached_token = cache.get('spotify_access_token')
     if cached_token:
         logger.info("Retrieved cached Spotify access token.")
         return cached_token
 
     url = 'https://accounts.spotify.com/api/token'
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
-    data = {
-        'grant_type': 'client_credentials'
-    }
-    response = requests.post(url, headers=headers, data=data, auth=(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
-
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    data = {'grant_type': 'client_credentials'}
+    
+    response = requests.post(url, headers=headers, data=data, 
+                             auth=(app.config['SPOTIFY_CLIENT_ID'], app.config['SPOTIFY_CLIENT_SECRET']))
     if response.status_code == 401:
         logger.error("Spotify API credentials are invalid.")
         raise Exception("Invalid Spotify API credentials")
-
+    
     response.raise_for_status()
     token = response.json()['access_token']
     cache.set('spotify_access_token', token, timeout=60*60)
@@ -55,18 +61,20 @@ def get_access_token():
 
 @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
 def make_spotify_request(endpoint, access_token):
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    logger.debug(f"Making Spotify API request to endpoint: {endpoint}")
+    """Make a Spotify API request."""
+    headers = {'Authorization': f'Bearer {access_token}'}
+    logger.debug(f"Making Spotify API request to: {endpoint}")
+    
     response = requests.get(endpoint, headers=headers)
     response.raise_for_status()
     return response.json()
 
 def sanitize_filename(filename):
+    """Sanitize filename to remove invalid characters."""
     return re.sub(r'[<>:"/\\|?*]', '', filename).strip()
 
 def save_image(image_url):
+    """Save image from URL."""
     logger.debug(f"Saving image from URL: {image_url}")
     response = requests.get(image_url)
     response.raise_for_status()
@@ -77,61 +85,56 @@ def save_image(image_url):
     return img_io
 
 def spotify_url_to_id(url):
-    if 'track' in url:
-        return url.split('/')[-1].split('?')[0], 'track'
-    elif 'album' in url:
-        return url.split('/')[-1].split('?')[0], 'album'
-    elif 'playlist' in url:
-        return url.split('/')[-1].split('?')[0], 'playlist'
-    elif 'artist' in url:
-        return url.split('/')[-1].split('?')[0], 'artist'
-    elif 'show' in url:
-        return url.split('/')[-1].split('?')[0], 'show'
-    elif 'episode' in url:
-        return url.split('/')[-1].split('?')[0], 'episode'
+    """Extract Spotify ID and type from URL."""
+    content_map = {'track': 'track', 'album': 'album', 'playlist': 'playlist', 
+                   'artist': 'artist', 'show': 'show', 'episode': 'episode'}
+    
+    for key in content_map:
+        if key in url:
+            return url.split('/')[-1].split('?')[0], content_map[key]
     return None, None
 
 def get_spotify_code(uri):
+    """Get Spotify code for a given URI."""
     url = f'https://scannables.scdn.co/uri/plain/svg/ffffff/black/640/{uri}'
     logger.debug(f"Fetching Spotify code for URI: {uri}")
+    
     response = requests.get(url)
     response.raise_for_status()
     return response.content
 
 def get_spotify_info(content_type, content_id):
+    """Fetch Spotify content information based on type and ID."""
     access_token = get_access_token()
-    if content_type == 'track':
-        endpoint = f'https://api.spotify.com/v1/tracks/{content_id}'
-    elif content_type == 'album':
-        endpoint = f'https://api.spotify.com/v1/albums/{content_id}'
-    elif content_type == 'playlist':
-        endpoint = f'https://api.spotify.com/v1/playlists/{content_id}'
-    elif content_type == 'artist':
-        endpoint = f'https://api.spotify.com/v1/artists/{content_id}'
-    elif content_type == 'show':
-        endpoint = f'https://api.spotify.com/v1/shows/{content_id}'
-    elif content_type == 'episode':
-        endpoint = f'https://api.spotify.com/v1/episodes/{content_id}'
-    else:
-        raise ValueError("Unsupported content type")
+    endpoints = {
+        'track': f'https://api.spotify.com/v1/tracks/{content_id}',
+        'album': f'https://api.spotify.com/v1/albums/{content_id}',
+        'playlist': f'https://api.spotify.com/v1/playlists/{content_id}',
+        'artist': f'https://api.spotify.com/v1/artists/{content_id}',
+        'show': f'https://api.spotify.com/v1/shows/{content_id}',
+        'episode': f'https://api.spotify.com/v1/episodes/{content_id}'
+    }
 
+    if content_type not in endpoints:
+        raise ValueError("Unsupported content type")
+    
     try:
-        info = make_spotify_request(endpoint, access_token)
+        info = make_spotify_request(endpoints[content_type], access_token)
     except Exception as e:
         logger.error(f"Error fetching Spotify info for {content_type} {content_id}: {e}")
         raise
-    
+
+    return parse_spotify_info(info, content_type)
+
+def parse_spotify_info(info, content_type):
+    """Parse the relevant information from the Spotify API response."""
     if content_type == 'track':
         title = info['name']
         artist = ', '.join(artist['name'] for artist in info['artists'])
         album_art_url = info['album']['images'][0]['url'] if 'images' in info['album'] else None
-    elif content_type == 'episode':
+    elif content_type == 'album':
         title = info['name']
-        artist = info['show']['publisher']
-        album_art_url = info['images'][0]['url'] if 'images' in info else info['show']['images'][0]['url']
-    elif content_type == 'album' or content_type == 'show':
-        title = info['name']
-        artist = ', '.join(artist['name'] for artist in info['artists']) if content_type == 'album' else info['publisher']
+        artist = ', '.join(artist['name'] for artist in info['artists'])
         album_art_url = info['images'][0]['url']
     elif content_type == 'playlist':
         title = info['name']
@@ -141,28 +144,40 @@ def get_spotify_info(content_type, content_id):
         title = info['name']
         artist = ''
         album_art_url = info['images'][0]['url'] if info['images'] else None
-
+    elif content_type == 'show':
+        title = info['name']
+        artist = info['publisher']
+        album_art_url = info['images'][0]['url']
+    elif content_type == 'episode':
+        title = info['name']
+        artist = info['show']['publisher']
+        album_art_url = info['images'][0]['url'] if 'images' in info else info['show']['images'][0]['url']
+    
     logger.info(f"Fetched Spotify info: Title: {title}, Artist: {artist}, Type: {content_type}")
     return title, artist, album_art_url
 
 def generate_etag(file_content):
+    """Generate an ETag based on the file content."""
     return hashlib.md5(file_content).hexdigest()
 
+# Blueprint for main routes
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
+    """Render the index page."""
     logger.info("Rendering index page")
     return render_template('index.html')
 
 @main_bp.route('/result', methods=['POST'])
 def result():
+    """Handle the result submission and display Spotify information."""
     spotify_url = request.form['spotify_url']
     content_id, content_type = spotify_url_to_id(spotify_url)
 
     if content_id is None:
         flash("Invalid Spotify URL. Please try again.")
-        logger.warning(f"Invalid Spotify URL submitted: {spotify_url}")
+        logger.warning(f"Invalid Spotify URL: {spotify_url}")
         return redirect(url_for('main.index'))
 
     try:
@@ -194,6 +209,7 @@ def result():
 
 @main_bp.route('/download/<file_type>')
 def download(file_type):
+    """Handle file downloads for album art and Spotify codes."""
     spotify_url = request.args.get('spotify_url')
     content_id, content_type = spotify_url_to_id(spotify_url)
 
@@ -237,18 +253,23 @@ def download(file_type):
 
 @main_bp.route('/back')
 def back():
+    """Redirect back to the index page."""
     logger.info("Redirecting to index page")
     return redirect(url_for('main.index'))
 
+# Register blueprint
 app.register_blueprint(main_bp)
 
+# Add security headers
 @app.after_request
 def add_security_headers(response):
+    """Add security headers to each response."""
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     return response
 
+# Run the application
 if __name__ == '__main__':
     app.run(port=8888, threaded=True)
