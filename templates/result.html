@@ -47,6 +47,11 @@
         </div>
     {% endif %}
 
+    <!-- Play on Spotify Button -->
+    <a class="spotify-button" href="{{ spotify_url }}" target="_blank">
+        <img src="{{ url_for('static', filename='spotify_logo.svg') }}" alt="Spotify Logo"> Play on Spotify
+    </a>
+
     <br>
     <a class="back-button" href="{{ url_for('main.back') }}">Back</a>
 </body>

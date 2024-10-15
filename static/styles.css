@@ -133,3 +133,41 @@ img {
         padding: 8px 16px;
     }
 }
+
+/* Spotify Button Styles */
+.spotify-button {
+    background-color: #1DB954; /* Spotify Green */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 16px;
+    display: inline-flex; /* Use inline-flex to avoid full width */
+    align-items: center;
+    justify-content: center; /* Center the content inside */
+    text-decoration: none;
+    transition: background-color 0.3s;
+    margin: 10px 0; /* Add margin for spacing */
+    width: auto; /* Prevent full width button */
+}
+
+.spotify-button:hover {
+    background-color: #1ed760; /* Lighter green on hover */
+}
+
+.spotify-button img {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    background-color: white; /* Add a white background for the logo */
+    border-radius: 50%; /* Optional: make the logo circular */
+    padding: 2px; /* Padding around the logo */
+}
+
+/* Ensure buttons are responsive on small screens */
+@media (max-width: 600px) {
+    .spotify-button {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+}
