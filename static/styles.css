@@ -9,6 +9,14 @@ h1, h2, h3 {
     margin: 10px 0;
 }
 
+/* Add a short divider line below h1 */
+.result-page hr.title-divider {
+    width: 50px; /* Adjust the width to make the divider short */
+    border: 0;
+    border-top: 2px solid #ccc; /* A subtle dividing line */
+    margin: 20px auto; /* Center the line and add space around it */
+}
+
 /* Form Styles */
 form {
     display: inline-block;
