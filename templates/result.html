@@ -32,6 +32,13 @@
             <a class="download-button" href="{{ url_for('main.download', file_type='spotify_code', spotify_url=spotify_url) }}" download>Download Spotify Code</a>
         </div>
     {% else %}
+        <!-- Play on Spotify Button (wrapped in a container for better centering) -->
+        <div class="spotify-button-container">
+            <a class="spotify-button" href="{{ spotify_url }}" target="_blank">
+                <img src="{{ url_for('static', filename='spotify_logo.svg') }}" alt="Spotify Logo"> Play on Spotify
+            </a>
+        </div>
+
         <div class="album-art-container">
             <h3>Album Art:</h3>
             <img class="album-art" src="{{ url_for('main.download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art for {{ title }} by {{ artist }}" loading="lazy">
@@ -46,11 +53,6 @@
             <a class="download-button" href="{{ url_for('main.download', file_type='spotify_code', spotify_url=spotify_url) }}" download>Download Spotify Code</a>
         </div>
     {% endif %}
-
-    <!-- Play on Spotify Button -->
-    <a class="spotify-button" href="{{ spotify_url }}" target="_blank">
-        <img src="{{ url_for('static', filename='spotify_logo.svg') }}" alt="Spotify Logo"> Play on Spotify
-    </a>
 
     <br>
     <a class="back-button" href="{{ url_for('main.back') }}">Back</a>
