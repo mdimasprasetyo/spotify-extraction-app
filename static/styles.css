@@ -134,6 +134,12 @@ img {
     }
 }
 
+/* Container to center the Spotify button */
+.spotify-button-container {
+    text-align: center; /* This ensures the button is centered */
+    margin-bottom: 20px; /* Add some spacing between the button and album art container */
+}
+
 /* Spotify Button Styles */
 .spotify-button {
     background-color: #1DB954; /* Spotify Green */
