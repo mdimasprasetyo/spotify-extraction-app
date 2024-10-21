@@ -1,4 +1,3 @@
-/* General Styles */
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
@@ -9,15 +8,13 @@ h1, h2, h3 {
     margin: 10px 0;
 }
 
-/* Add a short divider line below h1 */
 .result-page hr.title-divider {
-    width: 50px; /* Adjust the width to make the divider short */
+    width: 300px;
     border: 0;
-    border-top: 2px solid #ccc; /* A subtle dividing line */
-    margin: 20px auto; /* Center the line and add space around it */
+    border-top: 2px solid #ccc;
+    margin: 20px auto;
 }
 
-/* Form Styles */
 form {
     display: inline-block;
     text-align: left;
@@ -58,7 +55,6 @@ button:disabled {
     cursor: not-allowed;
 }
 
-/* Spinner Styles */
 .spinner {
     display: none;
     border: 8px solid #f3f3f3;
@@ -75,7 +71,6 @@ button:disabled {
     100% { transform: rotate(360deg); }
 }
 
-/* Error Message Styles */
 .error-message {
     color: red;
     font-size: 16px;
@@ -83,30 +78,26 @@ button:disabled {
     display: none;
 }
 
-/* Image Styles */
 img {
-    max-width: 100%; /* Ensures the image does not exceed the width of its container */
-    height: auto; /* Maintains aspect ratio */
+    max-width: 100%;
+    height: auto;
 }
 
-/* Scoped Styles for result.html */
 .result-page .album-art,
 .result-page .spotify-code {
-    max-width: 300px; /* Adjust the maximum width as needed */
-    max-height: 300px; /* Set a maximum height if necessary */
-    margin: 10px 0; /* Optional: add margin for spacing */
+    max-width: 300px;
+    max-height: 300px;
+    margin: 10px 0;
 }
 
-/* Album Art Container Styles */
 .result-page .album-art-container {
-    background-color: #f0f0f0; /* Light gray background */
+    background-color: #f0f0f0;
     padding: 20px;
     display: inline-block;
-    border-radius: 10px; /* Rounded corners */
-    margin: 10px 0; /* Spacing between elements */
+    border-radius: 10px;
+    margin: 10px 0;
 }
 
-/* Button Styles */
 .download-button, .back-button {
     display: inline-block;
     padding: 10px 20px;
@@ -134,7 +125,6 @@ img {
     background-color: #343a40;
 }
 
-/* Responsive Styles */
 @media (max-width: 600px) {
     .download-button, .back-button {
         font-size: 14px;
@@ -142,43 +132,40 @@ img {
     }
 }
 
-/* Container to center the Spotify button */
 .spotify-button-container {
-    text-align: center; /* This ensures the button is centered */
-    margin-bottom: 20px; /* Add some spacing between the button and album art container */
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-/* Spotify Button Styles */
 .spotify-button {
-    background-color: #1DB954; /* Spotify Green */
+    background-color: #1DB954;
     color: white;
     border: none;
     padding: 10px 20px;
     border-radius: 25px;
     font-size: 16px;
-    display: inline-flex; /* Use inline-flex to avoid full width */
+    display: inline-flex;
     align-items: center;
-    justify-content: center; /* Center the content inside */
+    justify-content: center;
     text-decoration: none;
     transition: background-color 0.3s;
-    margin: 10px 0; /* Add margin for spacing */
-    width: auto; /* Prevent full width button */
+    margin: 10px 0;
+    width: auto;
 }
 
 .spotify-button:hover {
-    background-color: #1ed760; /* Lighter green on hover */
+    background-color: #1ed760;
 }
 
 .spotify-button img {
     width: 20px;
     height: 20px;
     margin-right: 10px;
-    background-color: white; /* Add a white background for the logo */
-    border-radius: 50%; /* Optional: make the logo circular */
-    padding: 2px; /* Padding around the logo */
+    background-color: white;
+    border-radius: 50%;
+    padding: 2px;
 }
 
-/* Ensure buttons are responsive on small screens */
 @media (max-width: 600px) {
     .spotify-button {
         font-size: 14px;

@@ -11,7 +11,7 @@
 </head>
 <body class="result-page">
     <h1>{{ link_type }} Info</h1>
-    <hr class="title-divider"> <!-- Divider line below the title -->
+    <hr class="title-divider">
 
     {% if link_type == 'Artist' %}
         <h2>{{ title }}</h2>
@@ -34,7 +34,6 @@
             <a class="download-button" href="{{ url_for('main.download', file_type='spotify_code', spotify_url=spotify_url) }}" download>Download Spotify Code</a>
         </div>
     {% else %}
-        <!-- Play on Spotify Button (wrapped in a container for better centering) -->
         <div class="spotify-button-container">
             <a class="spotify-button" href="{{ spotify_url }}" target="_blank">
                 <img src="{{ url_for('static', filename='spotify_logo.svg') }}" alt="Spotify Logo"> Play on Spotify
