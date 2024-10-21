@@ -24,7 +24,7 @@
                 document.getElementById('spotify_url').value = '';
                 document.getElementById('spinner').style.display = 'none';
                 document.getElementById('error-message').style.display = 'none';
-                enableButton(); // Ensure button is enabled on page show
+                enableButton();
             }
         });
     
@@ -41,10 +41,10 @@
                 event.preventDefault();
                 document.getElementById('error-message').style.display = 'block';
                 document.getElementById('spinner').style.display = 'none';
-                enableButton(); // Enable button if URL is invalid
+                enableButton();
             } else {
                 document.getElementById('spinner').style.display = 'block';
-                disableButton(button); // Disable button after click
+                disableButton(button);
             }
         });
     
@@ -59,13 +59,13 @@
     
         function disableButton(button) {
             button.disabled = true;
-            button.innerHTML = "Processing..."; // Optional: change button text
+            button.innerHTML = "Processing...";
         }
     
         function enableButton() {
             var button = document.querySelector('button[type="submit"]');
             button.disabled = false;
-            button.innerHTML = "Get Info"; // Reset button text
+            button.innerHTML = "Get Info";
         }
     </script>    
 </body>
