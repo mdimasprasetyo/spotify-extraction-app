@@ -1,5 +1,6 @@
 import requests
 import re
+import os
 import urllib.parse
 import hashlib
 import logging
@@ -270,6 +271,6 @@ def add_security_headers(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     return response
 
-# Run the application
 if __name__ == '__main__':
-    app.run(port=8888, threaded=True)
+    port = int(os.getenv('PORT', 8888))
+    app.run(host='0.0.0.0', port=port, threaded=True)
