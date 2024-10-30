@@ -80,9 +80,14 @@ def save_image(image_url):
     response = requests.get(image_url)
     response.raise_for_status()
     img = Image.open(BytesIO(response.content))
+    
+    if img.mode == 'CMYK':
+        img = img.convert('RGB')
+    
     img_io = BytesIO()
     img.save(img_io, format='PNG')
     img_io.seek(0)
+    
     return img_io
 
 def spotify_url_to_id(url):
