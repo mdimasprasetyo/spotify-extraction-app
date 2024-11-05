@@ -12,23 +12,18 @@ from tenacity import retry, wait_fixed, stop_after_attempt
 from dotenv import load_dotenv
 from config import Config
 
-# Load environment variables
 load_dotenv()
 
-# Initialize Flask app and configuration
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']
 
-# Initialize cache
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
 
-# Setup logging
 logging.basicConfig(level=logging.DEBUG if app.debug else logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Validate Spotify credentials
 def validate_spotify_credentials():
     if not app.config['SPOTIFY_CLIENT_ID'] or not app.config['SPOTIFY_CLIENT_SECRET']:
         logger.error("Spotify API credentials are missing in environment variables.")
@@ -36,7 +31,6 @@ def validate_spotify_credentials():
 
 validate_spotify_credentials()
 
-# Helper functions
 def get_access_token():
     """Fetch and cache Spotify access token."""
     cached_token = cache.get('spotify_access_token')
@@ -130,35 +124,31 @@ def get_spotify_info(content_type, content_id):
         logger.error(f"Error fetching Spotify info for {content_type} {content_id}: {e}")
         raise
 
-    return parse_spotify_info(info, content_type)
-
-def parse_spotify_info(info, content_type):
-    """Parse the relevant information from the Spotify API response."""
     if content_type == 'track':
         title = info['name']
         artist = ', '.join(artist['name'] for artist in info['artists'])
-        album_art_url = info['album']['images'][0]['url'] if 'images' in info['album'] else None
+        album_art_url = info['album']['images'][0]['url'] if info['album'].get('images') else None
     elif content_type == 'album':
         title = info['name']
         artist = ', '.join(artist['name'] for artist in info['artists'])
-        album_art_url = info['images'][0]['url']
+        album_art_url = info['images'][0]['url'] if info.get('images') else None
     elif content_type == 'playlist':
         title = info['name']
         artist = info['owner']['display_name']
-        album_art_url = info['images'][0]['url']
+        album_art_url = info['images'][0]['url'] if info.get('images') else None
     elif content_type == 'artist':
         title = info['name']
         artist = ''
-        album_art_url = info['images'][0]['url'] if info['images'] else None
+        album_art_url = info['images'][0]['url'] if info.get('images') else None
     elif content_type == 'show':
         title = info['name']
         artist = info['publisher']
-        album_art_url = info['images'][0]['url']
+        album_art_url = info['images'][0]['url'] if info.get('images') else None
     elif content_type == 'episode':
         title = info['name']
         artist = info['show']['publisher']
-        album_art_url = info['images'][0]['url'] if 'images' in info else info['show']['images'][0]['url']
-    
+        album_art_url = info['images'][0]['url'] if info.get('images') else None
+
     logger.info(f"Fetched Spotify info: Title: {title}, Artist: {artist}, Type: {content_type}")
     return title, artist, album_art_url
 
@@ -166,7 +156,6 @@ def generate_etag(file_content):
     """Generate an ETag based on the file content."""
     return hashlib.md5(file_content).hexdigest()
 
-# Blueprint for main routes
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
@@ -205,13 +194,15 @@ def result():
     link_type = content_type.capitalize()
     
     logger.info(f"Rendered result page for Spotify URL {spotify_url}")
-    return render_template('result.html',
-                          title=title,
-                          artist=artist,
-                          link_type=link_type,
-                          album_art_url=urllib.parse.quote(album_art_filename),
-                          spotify_code_url=urllib.parse.quote(spotify_code_filename),
-                          spotify_url=spotify_url)
+    return render_template(
+        'result.html',
+        title=title,
+        artist=artist,
+        link_type=link_type,
+        album_art_url=album_art_url,
+        spotify_code_url=urllib.parse.quote(spotify_code_filename),
+        spotify_url=spotify_url
+    )
 
 @main_bp.route('/download/<file_type>')
 def download(file_type):
@@ -263,10 +254,8 @@ def back():
     logger.info("Redirecting to index page")
     return redirect(url_for('main.index'))
 
-# Register blueprint
 app.register_blueprint(main_bp)
 
-# Add security headers
 @app.after_request
 def add_security_headers(response):
     """Add security headers to each response."""

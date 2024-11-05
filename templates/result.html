@@ -23,7 +23,7 @@
     {% if link_type == 'Artist' %}
         <div>
             <h3>Artist Image:</h3>
-            <img class="album-art" src="{{ url_for('main.download', file_type='album_art', spotify_url=spotify_url) }}" alt="Artist Image for {{ artist }}" loading="lazy">
+            <img class="album-art" src="{{ album_art_url }}" alt="Artist Image for {{ artist }}" loading="lazy">
             <br>
             <a class="download-button" href="{{ url_for('main.download', file_type='album_art', spotify_url=spotify_url) }}" download>Download Artist Image</a>
         </div>
@@ -42,7 +42,7 @@
 
         <div class="album-art-container">
             <h3>Album Art:</h3>
-            <img class="album-art" src="{{ url_for('main.download', file_type='album_art', spotify_url=spotify_url) }}" alt="Album Art for {{ title }} by {{ artist }}" loading="lazy">
+            <img class="album-art" src="{{ album_art_url }}" alt="Album Art for {{ title }} by {{ artist }}" loading="lazy">
             <br>
             <a class="download-button" href="{{ url_for('main.download', file_type='album_art', spotify_url=spotify_url) }}" download>Download Album Art</a>
         </div>
