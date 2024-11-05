@@ -11,6 +11,7 @@ from flask_caching import Cache
 from tenacity import retry, wait_fixed, stop_after_attempt
 from dotenv import load_dotenv
 from config import Config
+from requests.exceptions import HTTPError
 
 load_dotenv()
 
@@ -61,6 +62,11 @@ def make_spotify_request(endpoint, access_token):
     logger.debug(f"Making Spotify API request to: {endpoint}")
     
     response = requests.get(endpoint, headers=headers)
+
+    if response.status_code == 403:
+        logger.warning("Access denied: The playlist might be private.")
+        raise Exception("The playlist is private or access is restricted.")
+
     response.raise_for_status()
     return response.json()
 
@@ -117,12 +123,21 @@ def get_spotify_info(content_type, content_id):
 
     if content_type not in endpoints:
         raise ValueError("Unsupported content type")
-    
+
     try:
         info = make_spotify_request(endpoints[content_type], access_token)
+    except HTTPError as e:
+        if e.response.status_code == 403:
+            flash("This playlist is private or restricted. Please ensure it’s public or accessible.")
+            logger.error("Access restricted for private playlist.")
+            return None, None, None
+        else:
+            logger.error(f"HTTPError fetching Spotify info for {content_type} {content_id}: {e}")
+            raise
     except Exception as e:
-        logger.error(f"Error fetching Spotify info for {content_type} {content_id}: {e}")
-        raise
+        flash("An error occurred while fetching data. Please try again later.")
+        logger.error(f"Unexpected error fetching Spotify info for {content_type} {content_id}: {e}")
+        return None, None, None
 
     if content_type == 'track':
         title = info['name']
@@ -177,6 +192,9 @@ def result():
 
     try:
         title, artist, album_art_url = get_spotify_info(content_type, content_id)
+        if title is None:
+            flash("The playlist is private or access is restricted. Please choose a public playlist.")
+            return redirect(url_for('main.index'))
     except Exception as e:
         logger.error(f"Error fetching Spotify data for URL {spotify_url}: {e}")
         flash("Error fetching Spotify data. Please try again later.")
