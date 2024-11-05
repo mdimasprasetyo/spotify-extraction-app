@@ -78,6 +78,16 @@ button:disabled {
     display: none;
 }
 
+.flash-messages {
+    margin: 1em 0;
+    padding: 1em;
+    background-color: #ffdddd;
+    border: 1px solid #dd0000;
+    color: #dd0000;
+    font-weight: bold;
+    text-align: center;
+}
+
 img {
     max-width: 100%;
     height: auto;

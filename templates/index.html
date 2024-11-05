@@ -8,6 +8,16 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
+    <body>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <p class="flash-message">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}    
     <h1>Enter Spotify Link</h1>
     <h2>(Song, Album, Playlist, Artist, Show, Episode)</h2>
     <form id="spotifyForm" action="/result" method="post">
@@ -25,6 +35,11 @@
                 document.getElementById('spinner').style.display = 'none';
                 document.getElementById('error-message').style.display = 'none';
                 enableButton();
+        
+                const flashMessages = document.querySelector('.flash-messages');
+                if (flashMessages) {
+                    flashMessages.style.display = 'none';
+                }
             }
         });
     
