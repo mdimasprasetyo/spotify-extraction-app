@@ -4,6 +4,7 @@ import os
 import urllib.parse
 import hashlib
 import logging
+import unicodedata
 from io import BytesIO
 from PIL import Image
 from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash, Blueprint
@@ -73,6 +74,12 @@ def make_spotify_request(endpoint, access_token):
 def sanitize_filename(filename):
     """Sanitize filename to remove invalid characters."""
     return re.sub(r'[<>:"/\\|?*]', '', filename).strip()
+
+def normalize_to_plain_text(text):
+    """Convert fancy Unicode text to plain ASCII text."""
+    normalized_text = unicodedata.normalize('NFKD', text)
+    plain_text = ''.join(char for char in normalized_text if not unicodedata.combining(char))
+    return plain_text.encode('ascii', 'ignore').decode('ascii')
 
 def save_image(image_url):
     """Save image from URL."""
@@ -148,8 +155,8 @@ def get_spotify_info(content_type, content_id):
         artist = ', '.join(artist['name'] for artist in info['artists'])
         album_art_url = info['images'][0]['url'] if info.get('images') else None
     elif content_type == 'playlist':
-        title = info['name']
-        artist = info['owner']['display_name']
+        title = normalize_to_plain_text(info['name'])
+        artist = normalize_to_plain_text(info['owner']['display_name'])
         album_art_url = info['images'][0]['url'] if info.get('images') else None
     elif content_type == 'artist':
         title = info['name']
