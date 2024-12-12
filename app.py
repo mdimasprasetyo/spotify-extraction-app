@@ -5,6 +5,7 @@ import urllib.parse
 import hashlib
 import logging
 import unicodedata
+import time
 from io import BytesIO
 from PIL import Image
 from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash, Blueprint
@@ -52,6 +53,8 @@ def get_access_token():
     
     response.raise_for_status()
     token = response.json()['access_token']
+    
+    cache.clear()
     cache.set('spotify_access_token', token, timeout=60*60)
     logger.info("Fetched new Spotify access token.")
     return token
@@ -63,10 +66,14 @@ def make_spotify_request(endpoint, access_token):
     logger.debug(f"Making Spotify API request to: {endpoint}")
     
     response = requests.get(endpoint, headers=headers)
-
+    
     if response.status_code == 403:
         logger.warning("Access denied: The playlist might be private.")
         raise Exception("The playlist is private or access is restricted.")
+
+    if response.status_code == 304:
+        logger.info("Spotify API returned 304: Not Modified.")
+        return None
 
     response.raise_for_status()
     return response.json()
@@ -82,8 +89,10 @@ def normalize_to_plain_text(text):
     return plain_text.encode('ascii', 'ignore').decode('ascii')
 
 def save_image(image_url):
-    """Save image from URL."""
+    """Save image from URL with cache-busting."""
     logger.debug(f"Saving image from URL: {image_url}")
+    # Append a cache-busting parameter to the URL
+    image_url += f"?t={int(time.time())}"
     response = requests.get(image_url)
     response.raise_for_status()
     img = Image.open(BytesIO(response.content))
