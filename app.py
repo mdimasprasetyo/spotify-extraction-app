@@ -34,6 +34,7 @@ def validate_spotify_credentials():
 
 validate_spotify_credentials()
 
+@retry(wait=wait_fixed(2), stop=stop_after_attempt(5))
 def get_access_token():
     """Fetch and cache Spotify access token."""
     cached_token = cache.get('spotify_access_token')
@@ -54,7 +55,6 @@ def get_access_token():
     response.raise_for_status()
     token = response.json()['access_token']
     
-    cache.clear()
     cache.set('spotify_access_token', token, timeout=60*60)
     logger.info("Fetched new Spotify access token.")
     return token
