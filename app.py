@@ -36,7 +36,6 @@ validate_spotify_credentials()
 
 @retry(wait=wait_fixed(2), stop=stop_after_attempt(5))
 def get_access_token():
-    """Fetch and cache Spotify access token."""
     cached_token = cache.get('spotify_access_token')
     if cached_token:
         logger.info("Retrieved cached Spotify access token.")
@@ -61,37 +60,33 @@ def get_access_token():
 
 @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
 def make_spotify_request(endpoint, access_token):
-    """Make a Spotify API request."""
     headers = {'Authorization': f'Bearer {access_token}'}
     logger.debug(f"Making Spotify API request to: {endpoint}")
     
     response = requests.get(endpoint, headers=headers)
-    
     if response.status_code == 403:
         logger.warning("Access denied: The playlist might be private.")
         raise Exception("The playlist is private or access is restricted.")
-
-    if response.status_code == 304:
-        logger.info("Spotify API returned 304: Not Modified.")
-        return None
+    elif response.status_code >= 400:
+        logger.error(f"Spotify API returned error {response.status_code}: {response.text}")
+        response.raise_for_status()
 
     response.raise_for_status()
     return response.json()
 
 def sanitize_filename(filename):
-    """Sanitize filename to remove invalid characters."""
     return re.sub(r'[<>:"/\\|?*]', '', filename).strip()
 
 def normalize_to_plain_text(text):
-    """Convert fancy Unicode text to plain ASCII text."""
-    normalized_text = unicodedata.normalize('NFKD', text)
-    plain_text = ''.join(char for char in normalized_text if not unicodedata.combining(char))
-    return plain_text.encode('ascii', 'ignore').decode('ascii')
+    normalized_text = unicodedata.normalize('NFKC', text)
+    plain_text = ''.join(
+        char for char in normalized_text 
+        if not unicodedata.combining(char) or unicodedata.category(char).startswith('M')
+    )
+    return plain_text
 
 def save_image(image_url):
-    """Save image from URL with cache-busting."""
     logger.debug(f"Saving image from URL: {image_url}")
-    # Append a cache-busting parameter to the URL
     image_url += f"?t={int(time.time())}"
     response = requests.get(image_url)
     response.raise_for_status()
@@ -107,7 +102,6 @@ def save_image(image_url):
     return img_io
 
 def spotify_url_to_id(url):
-    """Extract Spotify ID and type from URL."""
     content_map = {'track': 'track', 'album': 'album', 'playlist': 'playlist', 
                    'artist': 'artist', 'show': 'show', 'episode': 'episode'}
     
@@ -117,7 +111,6 @@ def spotify_url_to_id(url):
     return None, None
 
 def get_spotify_code(uri):
-    """Get Spotify code for a given URI."""
     url = f'https://scannables.scdn.co/uri/plain/svg/ffffff/black/640/{uri}'
     logger.debug(f"Fetching Spotify code for URI: {uri}")
     
@@ -126,7 +119,6 @@ def get_spotify_code(uri):
     return response.content
 
 def get_spotify_info(content_type, content_id):
-    """Fetch Spotify content information based on type and ID."""
     access_token = get_access_token()
     endpoints = {
         'track': f'https://api.spotify.com/v1/tracks/{content_id}',
@@ -184,20 +176,17 @@ def get_spotify_info(content_type, content_id):
     return title, artist, album_art_url
 
 def generate_etag(file_content):
-    """Generate an ETag based on the file content."""
     return hashlib.md5(file_content).hexdigest()
 
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    """Render the index page."""
     logger.info("Rendering index page")
     return render_template('index.html')
 
 @main_bp.route('/result', methods=['POST'])
 def result():
-    """Handle the result submission and display Spotify information."""
     spotify_url = request.form['spotify_url']
     content_id, content_type = spotify_url_to_id(spotify_url)
 
@@ -240,7 +229,6 @@ def result():
 
 @main_bp.route('/download/<file_type>')
 def download(file_type):
-    """Handle file downloads for album art and Spotify codes."""
     spotify_url = request.args.get('spotify_url')
     content_id, content_type = spotify_url_to_id(spotify_url)
 
@@ -284,7 +272,6 @@ def download(file_type):
 
 @main_bp.route('/back')
 def back():
-    """Redirect back to the index page."""
     logger.info("Redirecting to index page")
     return redirect(url_for('main.index'))
 
@@ -292,7 +279,6 @@ app.register_blueprint(main_bp)
 
 @app.after_request
 def add_security_headers(response):
-    """Add security headers to each response."""
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
