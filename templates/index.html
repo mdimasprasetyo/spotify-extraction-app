@@ -121,6 +121,13 @@
                 return;
             }
 
+            if (url.toLowerCase().includes('youtube.com')) {
+                spinner.style.display = 'block';
+                disableButton(button, 'Opening YouTube...');
+                window.location.href = url;
+                return;
+            }
+
             if (url.includes('spotify.link')) {
                 disableButton(button, 'Expanding short link...');
             } else {
