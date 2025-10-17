@@ -11,7 +11,7 @@
         #toast {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 50%; /* New: Position left edge at the center */
             background: #ff4d4f;
             color: #fff;
             padding: 14px 20px;
@@ -21,12 +21,12 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.4s ease, transform 0.4s ease;
-            transform: translateY(-10px);
+            transform: translateX(-50%) translateY(-10px);
             z-index: 9999;
-        }
+}
         #toast.show {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(-50%) translateY(0);
             pointer-events: auto;
         }
     </style>
@@ -49,7 +49,6 @@
     </form>
 
     <div id="spinner" class="spinner" style="display:none;"></div>
-    <div id="error-message" class="error-message" style="display:none;">Invalid Spotify URL. Please try again.</div>
     <div id="toast"></div>
 
     <script>
@@ -57,10 +56,7 @@
         function resetForm() {
             document.getElementById('spotify_url').value = '';
             document.getElementById('spinner').style.display = 'none';
-            document.getElementById('error-message').style.display = 'none';
             enableButton();
-            // const flashMessages = document.querySelector('.flash-messages');
-            // if (flashMessages) flashMessages.style.display = 'none';
         }
 
         function disableButton(button, text) {
@@ -91,13 +87,6 @@
             return regex.test(url);
         }
 
-        function showError(message) {
-            const el = document.getElementById('error-message');
-            el.textContent = message || 'Invalid Spotify URL. Please try again.';
-            el.style.display = 'block';
-            showToast(message);
-        }
-
         // --- Toast popup handler ---
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -107,12 +96,15 @@
             toast.hideTimeout = setTimeout(() => toast.classList.remove('show'), 4000);
         }
 
+        // This function is now simpler: it just shows the toast notification.
+        function showError(message) {
+            showToast(message || 'An error occurred. Please try again.');
+        }
+
         // === Restore clean state ===
         window.addEventListener('pageshow', e => { if (e.persisted) resetForm(); });
         window.addEventListener('load', resetForm);
-        document.getElementById('spotify_url').addEventListener('input', () => {
-            document.getElementById('error-message').style.display = 'none';
-        });
+        // The input event listener is no longer needed for the error message.
 
         // === Form Submit ===
         document.getElementById('spotifyForm').addEventListener('submit', function (event) {
@@ -122,13 +114,10 @@
             const url = urlInput.value.trim();
             const button = document.getElementById('submitButton');
             const spinner = document.getElementById('spinner');
-            const errorEl = document.getElementById('error-message');
-
-            errorEl.style.display = 'none';
 
             if (!isValidSpotifyUrl(url)) {
                 showError('Invalid Spotify URL. Please enter a valid link.');
-                resetForm();
+                resetForm(); // Clears the input field immediately
                 return;
             }
 
@@ -169,8 +158,7 @@
                         msg = 'Spotify link could not be reached. Please make sure it’s correct and public.';
                     }
                     showError(msg);
-                    enableButton();
-                    spinner.style.display = 'none';
+                    resetForm(); // Resets the form (clears input, enables button, hides spinner)
                 });
             })
             .catch(err => {
@@ -180,8 +168,7 @@
                     msg = 'Failed to expand short link due to network issue.';
                 }
                 showError(msg);
-                enableButton();
-                spinner.style.display = 'none';
+                resetForm(); // Resets the form (clears input, enables button, hides spinner)
             });
         });
         
