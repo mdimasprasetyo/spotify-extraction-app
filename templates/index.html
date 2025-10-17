@@ -1,92 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spotify Info</title>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <style>
+        /* --- Toast notification styles --- */
+        #toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff4d4f;
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-size: 15px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: translateY(-10px);
+            z-index: 9999;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+    </style>
 </head>
 <body>
-    <body>
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for message in messages %}
-                        <p class="flash-message">{{ message }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}    
     <h1>Enter Spotify Link</h1>
     <h2>(Song, Album, Playlist, Artist, Show, Episode)</h2>
-    <form id="spotifyForm" action="/result" method="post">
+
+    <form id="spotifyForm" action="/result" method="post" novalidate>
         <label for="spotify_url">Paste URL Here:</label>
-        <input type="url" id="spotify_url" name="spotify_url" placeholder="https://open.spotify.com/..." required>
-        <button type="submit" onclick="clearErrorMessage()">Get Info</button>
+        <input
+            type="url"
+            id="spotify_url"
+            name="spotify_url"
+            placeholder="open.spotify.com or spotify.link"
+            required
+            autocomplete="off"
+        />
+        <button type="submit" id="submitButton">Get Info</button>
     </form>
-    <div id="spinner" class="spinner"></div>
-    <div id="error-message" class="error-message">Invalid Spotify URL. Please try again.</div>
+
+    <div id="spinner" class="spinner" style="display:none;"></div>
+    <div id="error-message" class="error-message" style="display:none;">Invalid Spotify URL. Please try again.</div>
+    <div id="toast"></div>
 
     <script>
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                document.getElementById('spotify_url').value = '';
-                document.getElementById('spinner').style.display = 'none';
-                document.getElementById('error-message').style.display = 'none';
-                enableButton();
-        
-                const flashMessages = document.querySelector('.flash-messages');
-                if (flashMessages) {
-                    flashMessages.style.display = 'none';
-                }
-            }
-        });
-    
-        window.onload = function() {
+        // === Helper functions ===
+        function resetForm() {
             document.getElementById('spotify_url').value = '';
             document.getElementById('spinner').style.display = 'none';
-        };
-    
-        document.getElementById('spotifyForm').addEventListener('submit', function(event) {
-            var url = document.getElementById('spotify_url').value;
-            var button = event.target.querySelector('button');
-    
-            if (!isValidSpotifyUrl(url)) {
-                event.preventDefault();
-                document.getElementById('error-message').style.display = 'block';
-                document.getElementById('spinner').style.display = 'none';
-                enableButton();
-            } else {
-                document.getElementById('spinner').style.display = 'block';
-                disableButton(button);
+            document.getElementById('error-message').style.display = 'none';
+            enableButton();
+            // const flashMessages = document.querySelector('.flash-messages');
+            // if (flashMessages) flashMessages.style.display = 'none';
+        }
+
+        function disableButton(button, text) {
+            button.disabled = true;
+            if (typeof text === 'string') button.innerHTML = text;
+        }
+
+        function enableButton() {
+            const button = document.querySelector('button[type="submit"]');
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = 'Get Info';
             }
-        });
-    
+        }
+
         function isValidSpotifyUrl(url) {
-            // --- EASTER EGG START ---
-            if (url.toLowerCase().includes('youtube.com')) {
-                return true;
-            }
-            // --- EASTER EGG END ---
-            var regex = /^https:\/\/open\.spotify\.com(?:\/intl-[\w-]+)?\/(track|album|playlist|artist|show|episode)\/[A-Za-z0-9]{22}(?:\?.*)?$/;
+            if (!url) return false;
+            url = url.trim();
+
+            // EASTER EGG: allow YouTube just for fun
+            if (url.toLowerCase().includes('youtube.com')) return true;
+
+            // Spotify short links
+            if (/^https:\/\/spotify\.link\/[A-Za-z0-9]+$/.test(url)) return true;
+
+            // Regular Spotify URLs
+            const regex = /^https:\/\/open\.spotify\.com(?:\/intl-[\w-]+)?\/(track|album|playlist|artist|show|episode)\/[A-Za-z0-9]{22}(?:\?.*)?$/;
             return regex.test(url);
         }
-    
-        function clearErrorMessage() {
+
+        function showError(message) {
+            const el = document.getElementById('error-message');
+            el.textContent = message || 'Invalid Spotify URL. Please try again.';
+            el.style.display = 'block';
+            showToast(message);
+        }
+
+        // --- Toast popup handler ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toast.hideTimeout);
+            toast.hideTimeout = setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // === Restore clean state ===
+        window.addEventListener('pageshow', e => { if (e.persisted) resetForm(); });
+        window.addEventListener('load', resetForm);
+        document.getElementById('spotify_url').addEventListener('input', () => {
             document.getElementById('error-message').style.display = 'none';
-        }
-    
-        function disableButton(button) {
-            button.disabled = true;
-            button.innerHTML = "Processing...";
-        }
-    
-        function enableButton() {
-            var button = document.querySelector('button[type="submit"]');
-            button.disabled = false;
-            button.innerHTML = "Get Info";
-        }
-    </script>    
+        });
+
+        // === Form Submit ===
+        document.getElementById('spotifyForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const urlInput = document.getElementById('spotify_url');
+            const url = urlInput.value.trim();
+            const button = document.getElementById('submitButton');
+            const spinner = document.getElementById('spinner');
+            const errorEl = document.getElementById('error-message');
+
+            errorEl.style.display = 'none';
+
+            if (!isValidSpotifyUrl(url)) {
+                showError('Invalid Spotify URL. Please enter a valid link.');
+                resetForm();
+                return;
+            }
+
+            if (url.includes('spotify.link')) {
+                disableButton(button, 'Expanding short link...');
+            } else {
+                disableButton(button, 'Processing...');
+            }
+
+            spinner.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('spotify_url', url);
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                redirect: 'follow'
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+                if (response.ok) {
+                    return response.text().then(html => {
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    });
+                }
+
+                return response.text().then(text => {
+                    let msg = 'Could not retrieve Spotify data. Please try again later.';
+                    if (url.includes('spotify.link')) {
+                        msg = 'Failed to expand Spotify short link. Please copy the full link from the Spotify app.';
+                    } else if (url.includes('open.spotify.com')) {
+                        msg = 'Spotify link could not be reached. Please make sure it’s correct and public.';
+                    }
+                    showError(msg);
+                    enableButton();
+                    spinner.style.display = 'none';
+                });
+            })
+            .catch(err => {
+                console.error('Network or fetch error:', err);
+                let msg = 'Network error. Please check your internet connection.';
+                if (url.includes('spotify.link')) {
+                    msg = 'Failed to expand short link due to network issue.';
+                }
+                showError(msg);
+                enableButton();
+                spinner.style.display = 'none';
+            });
+        });
+        
+        window.addEventListener("DOMContentLoaded", function () {
+            const flashMessages = document.querySelectorAll(".flash-message");
+            flashMessages.forEach(msg => {
+                const message = msg.textContent.trim();
+                if (message) showToast(message);
+            });
+        });
+
+    </script>
 </body>
 </html>
