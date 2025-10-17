@@ -187,7 +187,20 @@ def index():
 
 @main_bp.route('/result', methods=['POST'])
 def result():
-    spotify_url = request.form['spotify_url']
+    spotify_url = request.form['spotify_url'].strip()
+
+    # --- EASTER EGG LOGIC START ---
+    # Check if the submitted URL is our secret Easter egg
+    if 'youtube.com' in spotify_url.lower():
+        logger.info(f"Easter egg triggered for URL: {spotify_url}")
+        # Ensure the URL has a protocol for a valid redirect
+        if not spotify_url.startswith(('http://', 'https://')):
+            redirect_url = f'https://{spotify_url}'
+        else:
+            redirect_url = spotify_url
+        return redirect(redirect_url)
+    # --- EASTER EGG LOGIC END ---
+
     content_id, content_type = spotify_url_to_id(spotify_url)
 
     if content_id is None:
