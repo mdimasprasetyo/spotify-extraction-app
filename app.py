@@ -225,12 +225,10 @@ def show_result():
     try:
         content_id, content_type = spotify_url_to_id(spotify_url)
         if content_id is None:
-            # The flash message is already set inside spotify_url_to_id
             return redirect(url_for("main.index"))
 
         title, artist, album_art_url = get_spotify_info(content_type, content_id)
         if not title:
-            # A flash message should be set within get_spotify_info for failures
             return redirect(url_for("main.index"))
 
     except Exception as e:
@@ -263,9 +261,15 @@ def result():
     return redirect(url_for("main.show_result", spotify_url=spotify_url))
 
 @main_bp.route("/download/<file_type>")
+@cache.cached(timeout=3600, query_string=True)
 def download(file_type):
     spotify_url = request.args.get("spotify_url")
+    if not spotify_url:
+        return "Missing Spotify URL", 400
+
     content_id, content_type = spotify_url_to_id(spotify_url)
+    if not content_id:
+        return "Invalid Spotify URL", 400
 
     title, artist, album_art_url = get_spotify_info(content_type, content_id)
     sanitized_title = sanitize_filename(title)
@@ -302,5 +306,8 @@ def add_security_headers(response):
     return response
 
 if __name__ == "__main__":
+    flask_env = os.getenv("FLASK_ENV", "production").lower()
+    host = "127.0.0.1" if flask_env == "development" else "0.0.0.0"
     port = int(os.getenv("PORT", 8888))
-    app.run(host="0.0.0.0", port=port, threaded=True)
+
+    app.run(host=host, port=port, debug=(flask_env == "development"))
