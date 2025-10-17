@@ -64,6 +64,11 @@
         });
     
         function isValidSpotifyUrl(url) {
+            // --- EASTER EGG START ---
+            if (url.toLowerCase().includes('youtube.com')) {
+                return true;
+            }
+            // --- EASTER EGG END ---
             var regex = /^https:\/\/open\.spotify\.com(?:\/intl-[\w-]+)?\/(track|album|playlist|artist|show|episode)\/[A-Za-z0-9]{22}(?:\?.*)?$/;
             return regex.test(url);
         }
