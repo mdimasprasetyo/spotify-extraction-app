@@ -49,15 +49,6 @@
 
     <div id="spinner" class="spinner" style="display:none;"></div>
     <div id="toast"></div>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flash-messages" style="display: none;">
-          {% for message in messages %}
-            <div class="flash-message">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
 
     <script>
         function resetForm() {
@@ -107,7 +98,7 @@
         window.addEventListener('load', resetForm);
 
         document.getElementById('spotifyForm').addEventListener('submit', function (event) {
-            event.preventDefault(); 
+            event.preventDefault();
 
             const urlInput = document.getElementById('spotify_url');
             const url = urlInput.value.trim();
@@ -126,17 +117,58 @@
                 window.location.href = url;
                 return;
             }
-            
+
             if (url.includes('spotify.link')) {
                 disableButton(button, 'Expanding short link...');
             } else {
                 disableButton(button, 'Processing...');
             }
-            spinner.style.display = 'block';
-            
-            this.submit(); 
-        });
 
+            spinner.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('spotify_url', url);
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                redirect: 'follow'
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+                if (response.ok) {
+                    return response.text().then(html => {
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    });
+                }
+
+                return response.text().then(text => {
+                    let msg = 'Could not retrieve Spotify data. Please try again later.';
+                    if (url.includes('spotify.link')) {
+                        msg = 'Failed to expand Spotify short link. Please copy the full link from the Spotify app.';
+                    } else if (url.includes('open.spotify.com')) {
+                        msg = 'Spotify link could not be reached. Please make sure it’s correct and public.';
+                    }
+                    showError(msg);
+                    resetForm();
+                });
+            })
+            .catch(err => {
+                console.error('Network or fetch error:', err);
+                let msg = 'Network error. Please check your internet connection.';
+                if (url.includes('spotify.link')) {
+                    msg = 'Failed to expand short link due to network issue.';
+                }
+                showError(msg);
+                resetForm();
+            });
+        });
+        
         window.addEventListener("DOMContentLoaded", function () {
             const flashMessages = document.querySelectorAll(".flash-message");
             flashMessages.forEach(msg => {
