@@ -215,6 +215,36 @@ main_bp = Blueprint("main", __name__)
 def index():
     return render_template("index.html")
 
+@main_bp.route("/show_result")
+def show_result():
+    spotify_url = request.args.get("spotify_url")
+    if not spotify_url:
+        flash("No Spotify URL provided.")
+        return redirect(url_for("main.index"))
+
+    try:
+        content_id, content_type = spotify_url_to_id(spotify_url)
+        if content_id is None:
+            return redirect(url_for("main.index"))
+
+        title, artist, album_art_url = get_spotify_info(content_type, content_id)
+        if not title:
+            return redirect(url_for("main.index"))
+
+    except Exception as e:
+        logger.error(f"Error processing Spotify URL {spotify_url} for display: {e}")
+        flash("An unexpected error occurred while retrieving Spotify data.")
+        return redirect(url_for("main.index"))
+
+    return render_template(
+        "result.html",
+        title=title,
+        artist=artist,
+        link_type=content_type.capitalize(),
+        album_art_url=album_art_url,
+        spotify_url=spotify_url
+    )
+
 @main_bp.route("/result", methods=["POST"])
 def result():
     spotify_url = request.form["spotify_url"].strip()
@@ -226,37 +256,20 @@ def result():
     content_id, content_type = spotify_url_to_id(spotify_url)
 
     if content_id is None:
-        return render_template("index.html"), 400
+        return redirect(url_for("main.index"))
 
-    try:
-        title, artist, album_art_url = get_spotify_info(content_type, content_id)
-        if not title:
-            return render_template("index.html"), 400
-    except Exception as e:
-        logger.error(f"Error processing Spotify URL {spotify_url}: {e}")
-        flash("Error retrieving Spotify data. Please try again later.")
-        return render_template("index.html"), 400
-
-    sanitized_title = sanitize_filename(title)
-    sanitized_artist = sanitize_filename(artist)
-
-    album_art_io = save_image(album_art_url) if album_art_url else BytesIO()
-    spotify_code_svg = get_spotify_code(f"spotify:{content_type}:{content_id}")
-
-    return render_template(
-        "result.html",
-        title=title,
-        artist=artist,
-        link_type=content_type.capitalize(),
-        album_art_url=album_art_url,
-        spotify_code_url=urllib.parse.quote(f"{sanitized_title}_{sanitized_artist}_spotify_code.svg"),
-        spotify_url=spotify_url
-    )
+    return redirect(url_for("main.show_result", spotify_url=spotify_url))
 
 @main_bp.route("/download/<file_type>")
+@cache.cached(timeout=3600, query_string=True)
 def download(file_type):
     spotify_url = request.args.get("spotify_url")
+    if not spotify_url:
+        return "Missing Spotify URL", 400
+
     content_id, content_type = spotify_url_to_id(spotify_url)
+    if not content_id:
+        return "Invalid Spotify URL", 400
 
     title, artist, album_art_url = get_spotify_info(content_type, content_id)
     sanitized_title = sanitize_filename(title)
@@ -282,10 +295,6 @@ def download(file_type):
         response.status_code = 304
     return response
 
-@main_bp.route("/back")
-def back():
-    return redirect(url_for("main.index"))
-
 app.register_blueprint(main_bp)
 
 @app.after_request
@@ -297,5 +306,8 @@ def add_security_headers(response):
     return response
 
 if __name__ == "__main__":
+    flask_env = os.getenv("FLASK_ENV", "production").lower()
+    host = "127.0.0.1" if flask_env == "development" else "0.0.0.0"
     port = int(os.getenv("PORT", 8888))
-    app.run(host="0.0.0.0", port=port, threaded=True)
+
+    app.run(host=host, port=port, debug=(flask_env == "development"))
