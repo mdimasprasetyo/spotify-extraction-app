@@ -19,6 +19,8 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config["SPOTIFY_CLIENT_ID"] = os.getenv("SPOTIFY_CLIENT_ID")
+app.config["SPOTIFY_CLIENT_SECRET"] = os.getenv("SPOTIFY_CLIENT_SECRET")
 app.secret_key = app.config['SECRET_KEY']
 
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
@@ -30,7 +32,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def validate_spotify_credentials():
-    if not app.config['SPOTIFY_CLIENT_ID'] or not app.config['SPOTIFY_CLIENT_SECRET']:
+    if not app.config.get("SPOTIFY_CLIENT_ID") or not app.config.get("SPOTIFY_CLIENT_SECRET"):
         logger.error("Spotify API credentials are missing in environment variables.")
         exit(1)
 
