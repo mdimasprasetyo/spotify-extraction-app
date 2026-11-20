@@ -10,7 +10,7 @@ from io import BytesIO
 from PIL import Image
 from flask import Flask, request, render_template, send_file, Response, redirect, url_for, flash, Blueprint
 from flask_caching import Cache
-from tenacity import retry, wait_fixed, stop_after_attempt
+from tenacity import retry, wait_fixed, stop_after_attempt, retry_if_exception
 from dotenv import load_dotenv
 from config import Config
 from requests.exceptions import HTTPError, RequestException
@@ -66,17 +66,24 @@ def get_access_token():
     logger.info("Fetched new Spotify access token.")
     return token
 
-@retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
+def _is_transient(e):
+    """Retry only network errors, rate limits (429) and server errors (5xx)."""
+    if not isinstance(e, RequestException):
+        return False
+    status = getattr(getattr(e, "response", None), "status_code", None)
+    return status is None or status == 429 or status >= 500
+
+@retry(
+    retry=retry_if_exception(_is_transient),
+    wait=wait_fixed(2),
+    stop=stop_after_attempt(3),
+    reraise=True,  # surface the real HTTPError instead of tenacity's RetryError
+)
 def make_spotify_request(endpoint, access_token):
     headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(endpoint, headers=headers)
-    logger.debug(f"Request to Spotify API: {endpoint}")
-
-    if response.status_code == 403:
-        raise Exception("The playlist may be private or restricted.")
-    elif response.status_code >= 400:
-        response.raise_for_status()
-
+    response = requests.get(endpoint, headers=headers, timeout=10)
+    logger.debug(f"Request to Spotify API: {endpoint} -> {response.status_code}")
+    response.raise_for_status()
     return response.json()
 
 def sanitize_filename(filename):
@@ -169,13 +176,15 @@ def get_spotify_info(content_type, content_id):
     try:
         info = make_spotify_request(endpoints[content_type], access_token)
     except HTTPError as e:
-        if e.response.status_code == 403:
-            flash("This playlist is private or restricted. Please ensure it’s public or accessible.")
-            logger.error("Access restricted for private playlist.")
-            return None, None, None
+        status = e.response.status_code
+        logger.error(f"Spotify API returned {status} for {content_type} {content_id}")
+        if status in (403, 404):
+            flash("This item is private, restricted, or doesn't exist. If it's a playlist, make sure it's set to public.")
+        elif status == 429:
+            flash("Spotify is rate-limiting requests right now. Please try again in a moment.")
         else:
-            logger.error(f"HTTPError fetching Spotify info for {content_type} {content_id}: {e}")
-            raise
+            flash("Spotify returned an error. Please try again later.")
+        return None, None, None
     except Exception as e:
         flash("Unexpected error fetching Spotify data.")
         logger.error(f"Unexpected error: {e}")
