@@ -226,6 +226,11 @@ main_bp = Blueprint("main", __name__)
 def index():
     return render_template("index.html")
 
+@main_bp.route("/health")
+def health():
+    """Lightweight liveness check for uptime monitors (no Spotify calls, no templates)."""
+    return Response("OK", status=200, mimetype="text/plain")
+
 @main_bp.route("/show_result")
 def show_result():
     spotify_url = request.args.get("spotify_url")
